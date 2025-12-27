@@ -1,16 +1,24 @@
-# AI Assessment Platform
+# Lisa - AI Assessment Platform
 
-An intelligent assessment platform with adaptive difficulty, AI-powered evaluation, and custom voice feedback using ElevenLabs.
+An intelligent assessment platform with adaptive difficulty, AI-powered evaluation, and custom voice feedback featuring Lisa, your AI assessment assistant.
 
 ## Features
 
-- 🤖 **AI-Powered Evaluation**: Uses OpenAI GPT-4o for intelligent answer assessment
+- 🤖 **AI-Powered Evaluation**: Lisa uses OpenAI GPT-4o for intelligent answer assessment
 - 🎯 **Adaptive Difficulty**: Automatically adjusts question difficulty based on performance
-- 🎤 **Custom Voice Feedback**: ElevenLabs TTS with custom "Devi" voice
+- 🎤 **Custom Voice Feedback**: Lisa speaks with a custom ElevenLabs voice
 - 🎙️ **Speech Recognition**: Voice input for answers (browser-based)
 - 📊 **Real-time Progress Tracking**: Visual question sidebar with status indicators
 - 🔄 **Session Management**: Persistent assessment sessions
 - 🎨 **Modern UI**: React + TypeScript + Tailwind CSS
+
+## Meet Lisa
+
+Lisa is your AI assessment assistant who:
+- Generates personalized questions based on your topic
+- Evaluates your answers with detailed feedback
+- Adapts difficulty to match your skill level
+- Provides encouraging voice feedback with a custom voice
 
 ## Tech Stack
 
@@ -128,10 +136,10 @@ SERVER_PORT=8000
 LOG_LEVEL=INFO
 ```
 
-### Getting Your ElevenLabs Voice ID
+### Getting Your Lisa Voice ID
 
 1. Go to [ElevenLabs Dashboard](https://elevenlabs.io/app/voice-lab)
-2. Find your custom voice (e.g., "Devi")
+2. Find your custom voice for Lisa
 3. Click the three dots (...) → "Copy voice ID"
 4. Paste into `ELEVENLABS_VOICE_ID` in `.env`
 
@@ -225,7 +233,7 @@ Set `DEV_MODE=true` in `aibackend/.env` to:
 - Correctness determination
 
 ### Voice Feedback
-- Custom ElevenLabs voice (Devi)
+- Custom ElevenLabs voice (Lisa)
 - Natural, engaging feedback
 - Fallback to browser TTS
 - Automatic audio playback

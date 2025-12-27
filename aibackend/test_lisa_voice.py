@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Quick test script to verify Devi voice configuration
+Quick test script to verify Lisa's voice configuration
 """
 
 import os
@@ -15,9 +15,9 @@ from app.services.voice_service import VoiceService
 
 
 def test_devi_voice():
-    """Test the Devi voice configuration"""
+    """Test Lisa's voice configuration"""
     
-    print("🎤 Testing Devi Voice Configuration\n")
+    print("🎤 Testing Lisa's Voice Configuration\n")
     print("=" * 50)
     
     # Load settings
@@ -50,7 +50,7 @@ def test_devi_voice():
     
     # Test voice generation
     print("\n🎵 Testing voice generation...")
-    test_text = "Hello! This is Devi speaking. Your voice configuration is working perfectly!"
+    test_text = "Hello! This is Lisa speaking. Your voice configuration is working perfectly!"
     
     try:
         audio_data = voice_service.generate_voice_feedback(test_text)
@@ -62,7 +62,7 @@ def test_devi_voice():
         with open(output_file, "wb") as f:
             f.write(audio_data)
         print(f"   Saved to: {output_file}")
-        print(f"\n🎧 Play the file to hear Devi's voice!")
+        print(f"\n🎧 Play the file to hear Lisa's voice!")
         
         return True
         
@@ -73,7 +73,7 @@ def test_devi_voice():
 
 if __name__ == "__main__":
     print("\n" + "=" * 50)
-    print("  DEVI VOICE TEST SCRIPT")
+    print("  LISA VOICE TEST SCRIPT")
     print("=" * 50 + "\n")
     
     success = test_devi_voice()
