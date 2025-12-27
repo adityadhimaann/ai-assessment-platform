@@ -13,7 +13,7 @@ export function Header({ topic, difficulty, currentQuestion, totalQuestions }: H
   return (
     <header className="glass-card-strong rounded-xl px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-4">
-        <div className="h-10 w-10 rounded-lg flex items-center justify-center overflow-hidden">
+        <div className="h-16 w-16 rounded-lg flex items-center justify-center overflow-hidden">
           <img src={lisaLogo} alt="Lisa AI" className="h-full w-full object-contain" />
         </div>
         <div>
