@@ -1,8 +1,9 @@
 {
-  "buildCommand": "cd aifrontend && npm install && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "aifrontend/dist",
-  "installCommand": "cd aifrontend && npm install",
-  "framework": "vite",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "framework": null,
   "rewrites": [
     {
       "source": "/(.*)",
