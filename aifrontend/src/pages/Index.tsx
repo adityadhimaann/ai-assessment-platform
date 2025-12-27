@@ -7,10 +7,11 @@ import { TranscriptBox } from "@/components/dashboard/TranscriptBox";
 import { FeedbackOverlay } from "@/components/dashboard/FeedbackOverlay";
 import { TopicSelector } from "@/components/dashboard/TopicSelector";
 import { Button } from "@/components/ui/button";
-import { Mic, Send, Loader2, MicOff, RotateCcw } from "lucide-react";
+import { Mic, Send, MicOff, RotateCcw } from "lucide-react";
 import { useAssessment, type Difficulty } from "@/hooks/useAssessment";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { toast } from "@/hooks/use-toast";
+import lisaGif from "@/assets/lisa.gif";
 
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -105,8 +106,10 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Generating your first question...</p>
+          <div className="flex justify-center">
+            <img src={lisaGif} alt="Lisa is thinking..." className="h-24 w-24 object-contain" />
+          </div>
+          <p className="text-muted-foreground">Lisa is generating your first question...</p>
         </div>
       </div>
     );
@@ -199,8 +202,8 @@ const Index = () => {
                 >
                   {isEvaluating ? (
                     <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Evaluating...
+                      <img src={lisaGif} alt="Evaluating..." className="h-5 w-5 mr-2" />
+                      Lisa is evaluating...
                     </>
                   ) : (
                     <>

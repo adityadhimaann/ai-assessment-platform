@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { Difficulty } from "@/hooks/useAssessment";
+import lisaLogo from "@/assets/lisa.png";
+import lisaGif from "@/assets/lisa.gif";
 
 interface TopicSelectorProps {
   onStart: (topic: string, difficulty: Difficulty) => void;
@@ -41,10 +43,15 @@ export function TopicSelector({ onStart, isLoading }: TopicSelectorProps) {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="glass-card-strong rounded-2xl p-8 max-w-2xl w-full space-y-8 animate-fade-in-up">
         {/* Header */}
-        <div className="text-center space-y-3">
-          <h1 className="text-3xl font-bold text-foreground">AI Assessment</h1>
+        <div className="text-center space-y-4">
+          <div className="flex justify-center mb-4">
+            <div className="h-20 w-20 rounded-2xl flex items-center justify-center overflow-hidden">
+              <img src={lisaLogo} alt="Lisa AI" className="h-full w-full object-contain" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-foreground">Welcome to Lisa</h1>
           <p className="text-muted-foreground">
-            Test your knowledge with AI-powered adaptive questions
+            Your AI assessment assistant with adaptive difficulty
           </p>
         </div>
 
@@ -128,8 +135,8 @@ export function TopicSelector({ onStart, isLoading }: TopicSelectorProps) {
         >
           {isLoading ? (
             <>
-              <Sparkles className="h-5 w-5 mr-2 animate-spin" />
-              Generating Question...
+              <img src={lisaGif} alt="Loading..." className="h-5 w-5 mr-2" />
+              Lisa is preparing...
             </>
           ) : (
             <>
@@ -141,7 +148,7 @@ export function TopicSelector({ onStart, isLoading }: TopicSelectorProps) {
 
         {/* Info */}
         <p className="text-center text-xs text-muted-foreground">
-          The AI will adapt difficulty based on your performance
+          Lisa will adapt difficulty based on your performance
         </p>
       </div>
     </div>
