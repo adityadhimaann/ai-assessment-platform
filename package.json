@@ -1,9 +1,0 @@
-{
-  "name": "lisa-ai-platform",
-  "version": "1.0.0",
-  "description": "Lisa AI Assessment Platform - Monorepo",
-  "scripts": {
-    "build": "cd aifrontend && npm run build",
-    "dev": "cd aifrontend && npm run dev"
-  }
-}
