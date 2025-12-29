@@ -247,21 +247,12 @@ Return your response as JSON with this exact structure:
 }}
 
 Important:
+Important:
 - Be SPECIFIC in feedback - mention actual concepts, not just "good job"
 - Be COMPREHENSIVE - provide detailed analysis, not one-liners
 - Be CONSTRUCTIVE and ENCOURAGING - focus on learning, not just grading
 - Give ACTIONABLE advice - tell them exactly what to add or change
 - Use PARAGRAPHS - separate different aspects of feedback with line breaks
-- Consider PARTIAL CREDIT - reward correct elements even if incomplete
-- Ensure JSON is valid and follows the exact structure above"""
-  "feedback_text": "<detailed, specific, constructive feedback in 3-5 sentences>",
-  "suggested_difficulty": "<Easy|Medium|Hard>"
-}}
-
-Important:
-- Be SPECIFIC in feedback - mention actual concepts, not just "good job"
-- Be CONSTRUCTIVE and ENCOURAGING - focus on learning, not just grading
-- Give ACTIONABLE advice - tell them exactly what to add or change
 - Consider PARTIAL CREDIT - reward correct elements even if incomplete
 - Ensure JSON is valid and follows the exact structure above"""
         
