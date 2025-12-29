@@ -73,10 +73,11 @@ class EvaluationService:
             messages = [
                 {
                     "role": "system",
-                    "content": "You are an expert educator and mentor who provides detailed, constructive feedback. "
-                              "Your evaluations are fair, specific, and educational. You identify both strengths and areas for improvement. "
-                              "Your feedback helps students understand not just what they got wrong, but how to improve and what to focus on. "
-                              "You always respond with valid JSON in the exact format specified, with detailed 3-5 sentence feedback."
+                    "content": "You are an expert educator and mentor who provides comprehensive, detailed feedback. "
+                              "Your evaluations are thorough, specific, and educational. You identify both strengths and areas for improvement with concrete examples. "
+                              "Your feedback helps students understand not just what they got wrong, but exactly how to improve and what to focus on. "
+                              "You write in paragraphs with clear structure. You provide 5-8 sentences minimum of detailed, actionable feedback. "
+                              "You always respond with valid JSON in the exact format specified."
                 },
                 {
                     "role": "user",
@@ -87,7 +88,8 @@ class EvaluationService:
             response_text = self.openai_client.chat_completion(
                 messages=messages,
                 response_format="json",
-                temperature=0.3  # Lower temperature for more consistent evaluation
+                temperature=0.3,  # Lower temperature for more consistent evaluation
+                max_tokens=1000  # Allow longer, more detailed feedback
             )
             
             # Parse the response
@@ -179,7 +181,7 @@ class EvaluationService:
         Returns:
             str: The formatted prompt for GPT-4o
         """
-        prompt = f"""You are an expert educator evaluating a student's answer. Provide detailed, constructive feedback.
+        prompt = f"""You are an expert educator and mentor evaluating a student's answer. Your feedback should be comprehensive, detailed, and educational.
 
 Topic: {topic}
 Question: {question}
@@ -202,12 +204,34 @@ Provide:
 
 2. Whether the answer is correct (score >= 80 is considered correct)
 
-3. DETAILED, SPECIFIC feedback that includes:
-   - What the student did WELL (be specific about correct points)
-   - What was MISSING or INCORRECT (identify specific gaps or errors)
-   - HOW TO IMPROVE (give actionable advice with examples)
-   - KEY CONCEPTS to review or remember for next time
-   - Make feedback 3-5 sentences, educational and encouraging
+3. COMPREHENSIVE, DETAILED feedback (MINIMUM 5-8 sentences) that includes:
+   
+   **What You Did Well:**
+   - Identify 2-3 specific correct points or concepts the student mentioned
+   - Acknowledge good reasoning or approach
+   - Highlight any particularly strong aspects of their answer
+   
+   **What Was Missing or Could Be Improved:**
+   - List specific concepts, details, or examples that were not mentioned
+   - Point out any inaccuracies or misconceptions
+   - Explain what a complete answer should include
+   
+   **How to Improve:**
+   - Provide 2-3 actionable suggestions with concrete examples
+   - Explain how to structure a better answer
+   - Suggest specific areas to study or practice
+   
+   **Key Concepts to Remember:**
+   - List 2-3 important concepts related to this question
+   - Explain why these concepts matter
+   - Connect them to real-world applications if relevant
+   
+   **Encouragement:**
+   - End with positive, motivating feedback
+   - Acknowledge effort and progress
+   - Encourage continued learning
+
+   IMPORTANT: Write in a conversational, friendly tone. Use paragraphs to organize your feedback. Be specific with examples. Make it educational and helpful, not just critical.
 
 4. Suggested difficulty for next question:
    - If score >= 85: suggest "Hard" (student is ready for challenge)
@@ -218,6 +242,18 @@ Return your response as JSON with this exact structure:
 {{
   "score": <integer from 0-100>,
   "is_correct": <boolean>,
+  "feedback_text": "<comprehensive, detailed feedback in 5-8 sentences minimum, organized in paragraphs>",
+  "suggested_difficulty": "<Easy|Medium|Hard>"
+}}
+
+Important:
+- Be SPECIFIC in feedback - mention actual concepts, not just "good job"
+- Be COMPREHENSIVE - provide detailed analysis, not one-liners
+- Be CONSTRUCTIVE and ENCOURAGING - focus on learning, not just grading
+- Give ACTIONABLE advice - tell them exactly what to add or change
+- Use PARAGRAPHS - separate different aspects of feedback with line breaks
+- Consider PARTIAL CREDIT - reward correct elements even if incomplete
+- Ensure JSON is valid and follows the exact structure above"""
   "feedback_text": "<detailed, specific, constructive feedback in 3-5 sentences>",
   "suggested_difficulty": "<Easy|Medium|Hard>"
 }}
