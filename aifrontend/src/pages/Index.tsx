@@ -151,8 +151,8 @@ const Index = () => {
   const handleSubmit = useCallback(async () => {
     if (!transcript.trim()) {
       toast({
-        title: "No Answer",
-        description: "Please record your answer before submitting.",
+        title: "No Answer Provided",
+        description: "Please record your answer before submitting. Speak clearly when the recording starts.",
         variant: "destructive",
       });
       return;
@@ -308,6 +308,47 @@ const Index = () => {
             {(isListening || transcript) && (
               <div className="max-w-2xl mx-auto">
                 <TranscriptBox transcript={transcript} isActive={isListening} />
+              </div>
+            )}
+            
+            {/* Empty Answer Message - Show when stopped recording but no transcript */}
+            {!isListening && !transcript && !isLisaSpeaking && !currentQuestion?.userAnswer && questions.length > 0 && (
+              <div className="max-w-2xl mx-auto">
+                <div className="glass-card p-8 text-center border-2 border-yellow-500/30 bg-yellow-500/5">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                      <span className="text-3xl">🎤</span>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold text-yellow-500">
+                        No Answer Detected
+                      </h3>
+                      <p className="text-foreground/80">
+                        Please speak your answer when recording starts.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Lisa will automatically start recording after reading the question.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => {
+                        if (isSupported) {
+                          startListening();
+                          toast({
+                            title: "Recording Started",
+                            description: "Speak your answer now...",
+                          });
+                        }
+                      }}
+                      className="mt-2"
+                    >
+                      <Mic className="h-4 w-4 mr-2" />
+                      Try Recording Again
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 
