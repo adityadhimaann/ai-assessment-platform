@@ -237,11 +237,20 @@ export function useAssessment(): UseAssessmentReturn {
     setEvaluation(null);
     const nextIndex = currentQuestionIndex + 1;
 
+    // Check if we've reached the limit
     if (nextIndex >= 10) {
       toast({ title: "Assessment Complete!", description: "You've answered all questions." });
       return;
     }
 
+    // If the next question already exists in the array, just navigate to it
+    if (nextIndex < questions.length) {
+      setCurrentQuestionIndex(nextIndex);
+      currentQuestionIdRef.current = questions[nextIndex].id;
+      return;
+    }
+
+    // Only fetch a new question if we don't have it yet
     setIsLoading(true);
     try {
       // Get next question from backend
@@ -270,7 +279,7 @@ export function useAssessment(): UseAssessmentReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [currentQuestionIndex, sessionId, topic]);
+  }, [currentQuestionIndex, sessionId, topic, questions]);
 
   const resetAssessment = useCallback(() => {
     // Stop any ongoing speech (both browser and audio elements)
