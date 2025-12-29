@@ -3,11 +3,7 @@
   "version": "1.0.0",
   "description": "Lisa AI Assessment Platform - Monorepo",
   "scripts": {
-    "install": "cd aifrontend && npm install",
     "build": "cd aifrontend && npm run build",
     "dev": "cd aifrontend && npm run dev"
-  },
-  "workspaces": [
-    "aifrontend"
-  ]
+  }
 }
