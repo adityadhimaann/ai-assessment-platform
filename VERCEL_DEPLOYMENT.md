@@ -1,39 +1,32 @@
 # Vercel Deployment Fix for Lisa AI Frontend
 
-## Problem
-Vercel is running out of memory because it's installing dependencies multiple times due to the monorepo structure.
+## ⚠️ IMPORTANT: Set Root Directory First!
 
-## Solution
+The build is failing because Vercel is trying to build from the wrong directory.
 
-### Option 1: Set Root Directory in Vercel Dashboard (Recommended)
+## Quick Fix (Do This First!)
 
-1. Go to your Vercel project settings
-2. Navigate to **Settings** → **General**
-3. Find **Root Directory**
-4. Set it to: `aifrontend`
+1. Go to your Vercel project → **Settings** → **General**
+2. Scroll to **Root Directory**
+3. Click **Edit**
+4. Enter: `aifrontend`
 5. Click **Save**
-6. Go to **Deployments** and click **Redeploy**
+6. Go to **Deployments** tab
+7. Click **Redeploy** on the latest deployment
 
-This tells Vercel to treat `aifrontend` as the project root, avoiding the monorepo complexity.
+**This is the most important step!** Without setting the root directory, Vercel will try to build from the monorepo root and fail.
 
-### Option 2: Use Vercel CLI with Root Directory
+## Build Settings (After Setting Root Directory)
 
-```bash
-cd aifrontend
-vercel --prod
-```
+Once root directory is set to `aifrontend`, use these settings:
 
-This deploys only the frontend folder.
+**Framework Preset:** Vite
 
-### Option 3: Update Build Settings
+**Build Command:** `npm run build` (default)
 
-If you can't change the root directory, update these settings in Vercel:
+**Output Directory:** `dist` (default)
 
-**Build & Development Settings:**
-- Framework Preset: `Vite`
-- Build Command: `cd aifrontend && npm install && npm run build`
-- Output Directory: `aifrontend/dist`
-- Install Command: `npm install --prefix aifrontend`
+**Install Command:** `npm install` (default)
 
 **Environment Variables:**
 ```
@@ -42,31 +35,34 @@ VITE_API_BASE_URL=https://your-backend-url.onrender.com/api
 
 ## Why This Happens
 
-The root `package.json` has scripts that run `cd aifrontend && npm install`, which causes:
-1. Vercel runs `npm install` at root
-2. Root package.json runs `cd aifrontend && npm install`
-3. This happens multiple times, filling up memory
+Your project is a monorepo with both `aifrontend` and `aibackend` folders. Vercel needs to know which folder to build. Without setting the root directory:
+- Vercel tries to build from the repository root
+- Path aliases like `@/lib/api-client` don't resolve correctly
+- Build fails with "could not load" errors
 
-## Recommended Structure
+## Alternative: Deploy from aifrontend Folder Only
 
-For Vercel, the cleanest approach is:
-- Set **Root Directory** to `aifrontend` in project settings
-- This makes Vercel treat it as a standalone project
-- No monorepo complexity, no memory issues
+If you keep having issues, the cleanest solution is:
 
-## After Deployment
+1. Create a new Vercel project
+2. When importing, select **only the aifrontend folder**
+3. Or use Vercel CLI from the aifrontend directory:
+   ```bash
+   cd aifrontend
+   vercel --prod
+   ```
 
-Your frontend will be at: `https://your-project.vercel.app`
+## After Successful Deployment
 
-Don't forget to:
-1. Update `VITE_API_BASE_URL` environment variable with your Render backend URL
+1. Get your Vercel URL: `https://your-project.vercel.app`
 2. Update backend CORS to allow your Vercel domain
+3. Test the application
 
-## Alternative: Deploy Frontend Separately
+## Still Having Issues?
 
-If issues persist, consider:
-1. Create a separate GitHub repo for just the `aifrontend` folder
-2. Deploy that repo to Vercel
-3. Much simpler, no monorepo issues
+If the build still fails after setting root directory:
+1. Check that `aifrontend/package.json` exists
+2. Check that `aifrontend/vite.config.ts` exists  
+3. Try deleting the Vercel project and creating a new one with root directory set from the start
 
-This is actually the recommended approach for production!
+The root directory setting is crucial for monorepo projects!

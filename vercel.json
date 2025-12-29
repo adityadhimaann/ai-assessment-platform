@@ -1,8 +1,7 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "cd aifrontend && npm run build",
   "outputDirectory": "aifrontend/dist",
-  "installCommand": "npm install --prefix aifrontend",
-  "devCommand": "npm run dev --prefix aifrontend",
+  "installCommand": "cd aifrontend && npm install",
   "framework": null,
   "rewrites": [
     {
