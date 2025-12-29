@@ -172,3 +172,61 @@ async def generate_voice_feedback(
                 "message": f"Failed to generate voice feedback: {str(e)}"
             }
         )
+
+
+
+@router.post(
+    "/read-question",
+    response_class=Response,
+    status_code=status.HTTP_200_OK,
+    summary="Read question aloud",
+    description="Convert question text to audio using Lisa's voice"
+)
+async def read_question(
+    request: VoiceFeedbackRequest,
+    voice_service: Annotated[VoiceService, Depends(get_voice_service)]
+) -> Response:
+    """
+    Read question aloud using Lisa's voice.
+    
+    Converts the question text to audio using ElevenLabs with Lisa's voice
+    and returns the audio data for playback.
+    
+    Args:
+        request: Request with feedback_text (question text)
+        voice_service: Injected voice service
+    
+    Returns:
+        Response: Audio data as MP3 with appropriate content type
+    
+    Raises:
+        HTTPException: 400 for invalid parameters, 500 for API errors
+    """
+    try:
+        # Generate voice for question
+        audio_data = voice_service.generate_voice_feedback(
+            feedback_text=request.feedback_text
+        )
+        
+        # Return audio as response
+        return Response(
+            content=audio_data,
+            media_type="audio/mpeg",
+            headers={
+                "Content-Disposition": "inline; filename=question.mp3"
+            }
+        )
+    
+    except TTSAPIError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=e.to_dict()
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error_type": "InternalServerError",
+                "message": f"Failed to read question: {str(e)}"
+            }
+        )

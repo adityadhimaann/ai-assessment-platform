@@ -28,3 +28,6 @@ structlog==24.1.0
 
 # CORS
 fastapi-cors==0.0.6
+
+# Firebase
+firebase-admin==6.4.0

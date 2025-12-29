@@ -72,9 +72,10 @@ class QuestionService:
                 messages = [
                     {
                         "role": "system",
-                        "content": "You are an expert educator creating assessment questions. "
-                                  "Generate clear, well-formed questions appropriate to the "
-                                  "specified difficulty level and topic."
+                        "content": "You are an expert educator and assessment designer with deep knowledge across multiple subjects. "
+                                  "Your questions are known for being clear, focused, and educational. "
+                                  "You create questions that test genuine understanding and help students learn through practice. "
+                                  "Generate questions that are specific, practical, and appropriate to the difficulty level."
                     },
                     {
                         "role": "user",
@@ -167,21 +168,28 @@ class QuestionService:
         Returns:
             str: The formatted prompt for GPT-4o
         """
-        prompt = f"""Generate a {difficulty.value} level question about {topic}.
+        prompt = f"""Generate a high-quality {difficulty.value} level practice question about {topic}.
 
 Difficulty Guidelines:
-- Easy: Basic concepts, definitions, recall of fundamental information. Questions should test understanding of core terminology and simple facts.
-- Medium: Application of concepts, analysis of relationships, understanding of how ideas connect. Questions should require reasoning and explanation.
-- Hard: Complex problem-solving, synthesis of multiple concepts, evaluation and critical thinking. Questions should challenge deep understanding and require sophisticated analysis.
+- Easy: Test fundamental concepts, definitions, and basic understanding. Questions should be straightforward and focus on core knowledge that forms the foundation of the topic.
+- Medium: Test practical application, analysis, and connections between concepts. Questions should require reasoning, explanation, and demonstration of how concepts work together.
+- Hard: Test advanced problem-solving, critical evaluation, and synthesis of multiple concepts. Questions should challenge deep understanding and require sophisticated analytical thinking.
 
-Requirements:
-- The question should be clear and unambiguous
-- It should be appropriate for the {difficulty.value} difficulty level
-- It should be directly related to {topic}
-- It should be answerable in a few sentences or a short paragraph
-- Do not include multiple choice options - this should be an open-ended question
+Question Quality Requirements:
+- Make the question SPECIFIC and FOCUSED on a particular aspect of {topic}
+- Ensure it's PRACTICAL and relevant to real-world understanding or application
+- Frame it to encourage DETAILED, THOUGHTFUL responses
+- Make it CLEAR and UNAMBIGUOUS with no room for misinterpretation
+- Design it to be EDUCATIONAL - answering should help reinforce learning
+- Keep it CONCISE but comprehensive enough to test understanding
+- Make it answerable in 2-4 sentences for a complete response
 
-Return only the question text, with no additional formatting, preamble, or explanation."""
+Question Types to Consider:
+- Easy: "What is...", "Define...", "List the main...", "Explain the basic..."
+- Medium: "How does... work?", "Why is... important?", "Compare...", "What happens when..."
+- Hard: "Analyze...", "Evaluate the impact of...", "Design a solution for...", "What are the trade-offs..."
+
+Return ONLY the question text - no preamble, no explanation, no formatting marks."""
         
         return prompt
 

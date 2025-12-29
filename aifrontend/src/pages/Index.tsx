@@ -273,29 +273,29 @@ const Index = () => {
           />
 
           {/* Assessment Area */}
-          <main className="flex-1 space-y-6">
+          <main className="flex-1 space-y-4">
             {/* Lisa Avatar - Always visible */}
             {currentQuestion && (
-              <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-4">
                 <LisaAvatar 
                   isSpeaking={isLisaSpeaking}
                   message={currentQuestion.question}
-                  size="xl"
+                  size="lg"
                 />
                 
                 {/* Question Text - Always visible below avatar */}
-                <div className="glass-card p-6 max-w-2xl w-full">
+                <div className="glass-card p-4 max-w-2xl w-full">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                      <span className="text-sm font-semibold text-primary">
+                    <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+                      <span className="text-xs font-semibold text-primary">
                         {currentQuestionIndex + 1}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-medium text-foreground mb-2">
+                      <h3 className="text-base font-medium text-foreground mb-1">
                         Question {currentQuestionIndex + 1}
                       </h3>
-                      <p className="text-foreground/90 leading-relaxed">
+                      <p className="text-sm text-foreground/9g-relaxed">
                         {currentQuestion.question}
                       </p>
                     </div>

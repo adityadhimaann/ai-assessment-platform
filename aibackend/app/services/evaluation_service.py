@@ -73,8 +73,10 @@ class EvaluationService:
             messages = [
                 {
                     "role": "system",
-                    "content": "You are an expert educator evaluating student answers. "
-                              "Always respond with valid JSON in the exact format specified."
+                    "content": "You are an expert educator and mentor who provides detailed, constructive feedback. "
+                              "Your evaluations are fair, specific, and educational. You identify both strengths and areas for improvement. "
+                              "Your feedback helps students understand not just what they got wrong, but how to improve and what to focus on. "
+                              "You always respond with valid JSON in the exact format specified, with detailed 3-5 sentence feedback."
                 },
                 {
                     "role": "user",
@@ -177,34 +179,55 @@ class EvaluationService:
         Returns:
             str: The formatted prompt for GPT-4o
         """
-        prompt = f"""You are an expert educator evaluating a student's answer.
+        prompt = f"""You are an expert educator evaluating a student's answer. Provide detailed, constructive feedback.
 
 Topic: {topic}
 Question: {question}
 Student Answer: {answer}
 
-Evaluate the answer and provide:
-1. A score from 0-100 based on correctness, completeness, and understanding
+Evaluation Criteria:
+1. ACCURACY: Is the information factually correct?
+2. COMPLETENESS: Does it cover all key aspects of the question?
+3. CLARITY: Is the explanation clear and well-organized?
+4. DEPTH: Does it show genuine understanding vs surface-level knowledge?
+5. RELEVANCE: Does it directly address what was asked?
+
+Provide:
+1. A score from 0-100:
+   - 90-100: Excellent - Accurate, complete, clear, shows deep understanding
+   - 80-89: Good - Mostly correct with minor gaps or unclear points
+   - 70-79: Satisfactory - Correct basics but missing depth or has some errors
+   - 60-69: Needs improvement - Partial understanding with significant gaps
+   - Below 60: Insufficient - Major misunderstandings or incomplete
+
 2. Whether the answer is correct (score >= 80 is considered correct)
-3. Constructive feedback explaining what was correct/incorrect and how to improve
-4. Suggested difficulty for the next question based on performance:
-   - If score >= 90: suggest "Hard"
-   - If score >= 70: suggest "Medium"
-   - If score < 70: suggest "Easy"
+
+3. DETAILED, SPECIFIC feedback that includes:
+   - What the student did WELL (be specific about correct points)
+   - What was MISSING or INCORRECT (identify specific gaps or errors)
+   - HOW TO IMPROVE (give actionable advice with examples)
+   - KEY CONCEPTS to review or remember for next time
+   - Make feedback 3-5 sentences, educational and encouraging
+
+4. Suggested difficulty for next question:
+   - If score >= 85: suggest "Hard" (student is ready for challenge)
+   - If score >= 70: suggest "Medium" (student is progressing well)
+   - If score < 70: suggest "Easy" (student needs more foundation)
 
 Return your response as JSON with this exact structure:
 {{
   "score": <integer from 0-100>,
   "is_correct": <boolean>,
-  "feedback_text": "<detailed constructive feedback>",
+  "feedback_text": "<detailed, specific, constructive feedback in 3-5 sentences>",
   "suggested_difficulty": "<Easy|Medium|Hard>"
 }}
 
 Important:
-- Be fair and objective in your evaluation
-- Provide specific, actionable feedback
-- Consider partial credit for partially correct answers
-- Ensure the JSON is valid and follows the exact structure above"""
+- Be SPECIFIC in feedback - mention actual concepts, not just "good job"
+- Be CONSTRUCTIVE and ENCOURAGING - focus on learning, not just grading
+- Give ACTIONABLE advice - tell them exactly what to add or change
+- Consider PARTIAL CREDIT - reward correct elements even if incomplete
+- Ensure JSON is valid and follows the exact structure above"""
         
         return prompt
     
