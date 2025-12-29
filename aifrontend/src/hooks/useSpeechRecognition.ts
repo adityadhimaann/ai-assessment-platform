@@ -10,6 +10,7 @@ interface UseSpeechRecognitionReturn {
   startListening: () => void;
   stopListening: () => void;
   resetTranscript: () => void;
+  setTranscript: (text: string) => void;
 }
 
 // Extend Window interface for SpeechRecognition
@@ -231,5 +232,6 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     startListening,
     stopListening,
     resetTranscript,
+    setTranscript,
   };
 }

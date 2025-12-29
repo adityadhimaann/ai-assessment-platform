@@ -6,16 +6,24 @@ import { WaveformVisualizer } from "@/components/dashboard/WaveformVisualizer";
 import { TranscriptBox } from "@/components/dashboard/TranscriptBox";
 import { FeedbackOverlay } from "@/components/dashboard/FeedbackOverlay";
 import { TopicSelector } from "@/components/dashboard/TopicSelector";
+import { ResultsPage } from "@/components/dashboard/ResultsPage";
+import { LisaAvatar } from "@/components/dashboard/LisaAvatar";
 import { Button } from "@/components/ui/button";
 import { Mic, Send, MicOff, RotateCcw } from "lucide-react";
 import { useAssessment, type Difficulty } from "@/hooks/useAssessment";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { toast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api-client";
 import lisaGif from "@/assets/lisa.gif";
+
+const TOTAL_QUESTIONS = 10;
 
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [isLisaSpeaking, setIsLisaSpeaking] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
   const {
     topic,
@@ -27,10 +35,14 @@ const Index = () => {
     isLoading,
     isEvaluating,
     evaluation,
+    sessionId,
     startAssessment,
     submitAnswer,
     nextQuestion,
+    previousQuestion,
+    goToQuestion,
     resetAssessment,
+    setEvaluation,
   } = useAssessment();
 
   const {
@@ -40,6 +52,7 @@ const Index = () => {
     startListening,
     stopListening,
     resetTranscript,
+    setTranscript,
   } = useSpeechRecognition();
 
   const handleStart = useCallback(async (selectedTopic: string, selectedDifficulty: Difficulty) => {
@@ -47,6 +60,66 @@ const Index = () => {
     setHasStarted(true);
     await startAssessment();
   }, [setTopic, startAssessment]);
+
+  // Auto-read question when it changes
+  useEffect(() => {
+    const readQuestion = async () => {
+      // Only read if: new question, not answered, not already speaking, and not currently listening
+      if (currentQuestion && 
+          !currentQuestion.userAnswer && 
+          !isLisaSpeaking && 
+          !isListening &&
+          !transcript) {
+        try {
+          setIsLisaSpeaking(true);
+          
+          // Stop any existing audio
+          if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+          }
+          
+          // Get audio from backend
+          const audioBlob = await apiClient.readQuestion(currentQuestion.question);
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
+          setCurrentAudio(audio);
+          
+          audio.onended = () => {
+            setIsLisaSpeaking(false);
+            URL.revokeObjectURL(audioUrl);
+            setCurrentAudio(null);
+            
+            // Auto-start recording after Lisa finishes speaking
+            setTimeout(() => {
+              if (isSupported && !isListening && !transcript) {
+                startListening();
+                toast({
+                  title: "Recording Started",
+                  description: "Lisa is listening to your answer...",
+                });
+              }
+            }, 500); // Small delay for smooth transition
+          };
+          
+          audio.onerror = () => {
+            setIsLisaSpeaking(false);
+            URL.revokeObjectURL(audioUrl);
+            setCurrentAudio(null);
+            console.error("Error playing question audio");
+          };
+          
+          await audio.play();
+        } catch (error) {
+          console.error("Error reading question:", error);
+          setIsLisaSpeaking(false);
+        }
+      }
+    };
+
+    readQuestion();
+  }, [currentQuestion?.id]); // Only depend on question ID to prevent loops
 
   const toggleRecording = useCallback(() => {
     if (!isSupported) {
@@ -58,12 +131,22 @@ const Index = () => {
       return;
     }
 
+    // Don't allow recording while Lisa is speaking
+    if (isLisaSpeaking) {
+      toast({
+        title: "Please Wait",
+        description: "Lisa is still reading the question. Please wait for her to finish.",
+        variant: "default",
+      });
+      return;
+    }
+
     if (isListening) {
       stopListening();
     } else {
       startListening();
     }
-  }, [isListening, isSupported, startListening, stopListening]);
+  }, [isListening, isSupported, isLisaSpeaking, startListening, stopListening]);
 
   const handleSubmit = useCallback(async () => {
     if (!transcript.trim()) {
@@ -80,25 +163,60 @@ const Index = () => {
 
   const handleNextQuestion = useCallback(async () => {
     resetTranscript();
+    
+    // Check if we've completed all questions
+    if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
+      setShowResults(true);
+      return;
+    }
+    
     await nextQuestion();
-  }, [resetTranscript, nextQuestion]);
+  }, [resetTranscript, nextQuestion, currentQuestionIndex]);
 
   const handleReset = useCallback(() => {
     resetAssessment();
     resetTranscript();
     setHasStarted(false);
+    setShowResults(false);
   }, [resetAssessment, resetTranscript]);
 
+  const handlePreviousQuestion = useCallback(() => {
+    previousQuestion();
+    // Load the previous answer into the transcript
+    const prevQuestion = questions[currentQuestionIndex - 1];
+    if (prevQuestion?.userAnswer) {
+      setTranscript(prevQuestion.userAnswer);
+    } else {
+      resetTranscript();
+    }
+  }, [previousQuestion, questions, currentQuestionIndex, setTranscript, resetTranscript]);
+
+  const handleGoToQuestion = useCallback((index: number) => {
+    goToQuestion(index);
+    // Load the answer into the transcript if it exists
+    const targetQuestion = questions[index];
+    if (targetQuestion?.userAnswer) {
+      setTranscript(targetQuestion.userAnswer);
+    } else {
+      resetTranscript();
+    }
+  }, [goToQuestion, questions, setTranscript, resetTranscript]);
+
   // Map questions to sidebar format
-  const sidebarQuestions = questions.map((q) => ({
+  const sidebarQuestions = questions.map((q, index) => ({
     id: q.id,
-    title: q.title,
+    title: `Question ${index + 1}`,
     isCorrect: q.isCorrect,
   }));
 
   // Show topic selector if not started
   if (!hasStarted) {
     return <TopicSelector onStart={handleStart} isLoading={isLoading} />;
+  }
+
+  // Show results page if assessment is complete
+  if (showResults && sessionId) {
+    return <ResultsPage sessionId={sessionId} onStartNew={handleReset} />;
   }
 
   // Show loading state
@@ -130,7 +248,7 @@ const Index = () => {
             topic={topic}
             difficulty={difficulty}
             currentQuestion={currentQuestionIndex + 1}
-            totalQuestions={10}
+            totalQuestions={TOTAL_QUESTIONS}
           />
           <Button
             variant="ghost"
@@ -151,67 +269,138 @@ const Index = () => {
             currentQuestionIndex={currentQuestionIndex}
             isCollapsed={sidebarCollapsed}
             onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-            onSelect={(index) => {/* Can add navigation later */}}
+            onSelect={handleGoToQuestion}
           />
 
           {/* Assessment Area */}
           <main className="flex-1 space-y-6">
-            {/* Question Card */}
+            {/* Lisa Avatar - Always visible */}
             {currentQuestion && (
-              <QuestionCard
-                questionNumber={currentQuestionIndex + 1}
-                question={currentQuestion.question}
-              />
+              <div className="flex flex-col items-center gap-6">
+                <LisaAvatar 
+                  isSpeaking={isLisaSpeaking}
+                  message={currentQuestion.question}
+                  size="xl"
+                />
+                
+                {/* Question Text - Always visible below avatar */}
+                <div className="glass-card p-6 max-w-2xl w-full">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                      <span className="text-sm font-semibold text-primary">
+                        {currentQuestionIndex + 1}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-medium text-foreground mb-2">
+                        Question {currentQuestionIndex + 1}
+                      </h3>
+                      <p className="text-foreground/90 leading-relaxed">
+                        {currentQuestion.question}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
-            {/* Voice Input & Transcript */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <WaveformVisualizer isActive={isListening} />
-              <TranscriptBox transcript={transcript} isActive={isListening} />
-            </div>
+            {/* Transcript Box - Show when recording or has transcript */}
+            {(isListening || transcript) && (
+              <div className="max-w-2xl mx-auto">
+                <TranscriptBox transcript={transcript} isActive={isListening} />
+              </div>
+            )}
 
             {/* Action Buttons */}
-            <div className="flex justify-center gap-4">
-              <Button
-                variant={isListening ? "destructive" : "glow"}
-                size="lg"
-                onClick={toggleRecording}
-                className="min-w-[160px]"
-                disabled={isEvaluating || !isSupported}
-              >
-                {isListening ? (
-                  <>
+            <div className="space-y-4 max-w-2xl mx-auto">
+              {/* Status Messages */}
+              <div className="text-center">
+                {isLisaSpeaking && (
+                  <p className="text-primary animate-pulse text-lg">
+                    🎤 Lisa is asking the question...
+                  </p>
+                )}
+                {isListening && !isLisaSpeaking && (
+                  <p className="text-primary animate-pulse text-lg">
+                    🎙️ Recording your answer...
+                  </p>
+                )}
+                {!isLisaSpeaking && !isListening && !transcript && !currentQuestion?.userAnswer && (
+                  <p className="text-muted-foreground">
+                    Recording will start automatically...
+                  </p>
+                )}
+              </div>
+
+              {/* Control Buttons */}
+              <div className="flex justify-center gap-4">
+                {/* Stop Recording Button */}
+                {isListening && (
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    onClick={stopListening}
+                    className="min-w-[180px]"
+                  >
                     <MicOff className="h-5 w-5 mr-2" />
                     Stop Recording
-                  </>
-                ) : (
-                  <>
-                    <Mic className="h-5 w-5 mr-2" />
-                    Start Recording
-                  </>
+                  </Button>
                 )}
-              </Button>
-              
-              {transcript && (
-                <Button
-                  variant="default"
-                  size="lg"
-                  onClick={handleSubmit}
-                  className="min-w-[160px] animate-fade-in-up"
-                  disabled={isEvaluating}
-                >
-                  {isEvaluating ? (
-                    <>
-                      <img src={lisaGif} alt="Evaluating..." className="h-5 w-5 mr-2" />
-                      Lisa is evaluating...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-5 w-5 mr-2" />
-                      Submit Answer
-                    </>
-                  )}
-                </Button>
+                
+                {/* Submit Answer Button */}
+                {transcript && !currentQuestion?.userAnswer && !isListening && (
+                  <Button
+                    variant="glow"
+                    size="lg"
+                    onClick={handleSubmit}
+                    className="min-w-[180px] animate-fade-in-up"
+                    disabled={isEvaluating}
+                  >
+                    {isEvaluating ? (
+                      <>
+                        <img src={lisaGif} alt="Evaluating..." className="h-5 w-5 mr-2" />
+                        Lisa is evaluating...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-5 w-5 mr-2" />
+                        Submit Answer
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              {/* Navigation Buttons */}
+              {questions.length > 1 && !isLisaSpeaking && (
+                <div className="flex justify-center gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousQuestion}
+                    disabled={currentQuestionIndex === 0 || isEvaluating || isListening}
+                  >
+                    ← Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground flex items-center px-4">
+                    Question {currentQuestionIndex + 1} of {questions.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextQuestion}
+                    disabled={currentQuestionIndex >= questions.length - 1 || !currentQuestion?.userAnswer || isEvaluating || isListening}
+                  >
+                    Next →
+                  </Button>
+                </div>
+              )}
+
+              {/* Previous Answer Message */}
+              {currentQuestion?.userAnswer && (
+                <p className="text-center text-sm text-muted-foreground pt-2">
+                  ✓ Question already answered. Navigate to continue.
+                </p>
               )}
             </div>
 
@@ -226,12 +415,13 @@ const Index = () => {
       </div>
 
       {/* Feedback Overlay */}
-      {evaluation && (
+      {evaluation && currentQuestion && (
         <FeedbackOverlay
           isVisible={!!evaluation}
           isCorrect={evaluation.is_correct}
           suggestions={evaluation.feedback}
-          onClose={() => {}}
+          userAnswer={currentQuestion.userAnswer || transcript}
+          onClose={() => setEvaluation(null)}
           onNext={handleNextQuestion}
         />
       )}

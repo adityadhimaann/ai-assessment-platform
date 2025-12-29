@@ -12,6 +12,8 @@ export interface Question {
   expectedPoints: string[];
   isCorrect: boolean | null;
   score?: number;
+  userAnswer?: string;
+  evaluation?: Evaluation;
 }
 
 export interface Evaluation {
@@ -38,7 +40,10 @@ interface UseAssessmentReturn {
   startAssessment: () => Promise<void>;
   submitAnswer: (answer: string) => Promise<void>;
   nextQuestion: () => Promise<void>;
+  previousQuestion: () => void;
+  goToQuestion: (index: number) => void;
   resetAssessment: () => void;
+  setEvaluation: (evaluation: Evaluation | null) => void;
 }
 
 // Helper to convert frontend difficulty to backend format
@@ -159,11 +164,17 @@ export function useAssessment(): UseAssessmentReturn {
 
       setEvaluation(evalResult);
 
-      // Update question with result
+      // Update question with result and store answer
       setQuestions((prev) =>
         prev.map((q, i) =>
           i === currentQuestionIndex
-            ? { ...q, isCorrect: evalResult.is_correct, score: evalResult.score }
+            ? { 
+                ...q, 
+                isCorrect: evalResult.is_correct, 
+                score: evalResult.score,
+                userAnswer: answer,
+                evaluation: evalResult
+              }
             : q
         )
       );
@@ -284,6 +295,41 @@ export function useAssessment(): UseAssessmentReturn {
     currentQuestionIdRef.current = null;
   }, []);
 
+  const previousQuestion = useCallback(() => {
+    if (currentQuestionIndex > 0) {
+      const prevIndex = currentQuestionIndex - 1;
+      setCurrentQuestionIndex(prevIndex);
+      
+      // Load the previous question's evaluation if it exists
+      const prevQuestion = questions[prevIndex];
+      if (prevQuestion.evaluation) {
+        setEvaluation(prevQuestion.evaluation);
+      } else {
+        setEvaluation(null);
+      }
+      
+      // Update the current question ID ref
+      currentQuestionIdRef.current = prevQuestion.id;
+    }
+  }, [currentQuestionIndex, questions]);
+
+  const goToQuestion = useCallback((index: number) => {
+    if (index >= 0 && index < questions.length) {
+      setCurrentQuestionIndex(index);
+      
+      // Load the question's evaluation if it exists
+      const targetQuestion = questions[index];
+      if (targetQuestion.evaluation) {
+        setEvaluation(targetQuestion.evaluation);
+      } else {
+        setEvaluation(null);
+      }
+      
+      // Update the current question ID ref
+      currentQuestionIdRef.current = targetQuestion.id;
+    }
+  }, [questions]);
+
   return {
     topic,
     setTopic,
@@ -300,6 +346,9 @@ export function useAssessment(): UseAssessmentReturn {
     startAssessment,
     submitAnswer,
     nextQuestion,
+    previousQuestion,
+    goToQuestion,
     resetAssessment,
+    setEvaluation,
   };
 }
