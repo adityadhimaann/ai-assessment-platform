@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { apiClient, Difficulty as APIDifficulty } from "@/lib/api-client";
+import { apiClient, Difficulty as APIDifficulty } from "@/lib/api-client.ts";
 import { toast } from "@/hooks/use-toast";
 
 export type Difficulty = "easy" | "medium" | "hard";

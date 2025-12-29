@@ -13,7 +13,7 @@ import { Mic, Send, MicOff, RotateCcw } from "lucide-react";
 import { useAssessment, type Difficulty } from "@/hooks/useAssessment";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { toast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client.ts";
 import lisaGif from "@/assets/lisa.gif";
 
 const TOTAL_QUESTIONS = 10;

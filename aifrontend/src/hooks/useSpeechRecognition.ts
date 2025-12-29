@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client.ts";
 
 interface UseSpeechRecognitionReturn {
   transcript: string;
