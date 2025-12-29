@@ -31,7 +31,15 @@ Once root directory is set to `aifrontend`, use these settings:
 **Environment Variables:**
 ```
 VITE_API_BASE_URL=https://your-backend-url.onrender.com/api
+VITE_FIREBASE_API_KEY=your-api-key-here
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
 ```
+
+**Note:** Get Firebase config values from Firebase Console > Project Settings > General > Your apps > Web app
 
 ## Why This Happens
 
