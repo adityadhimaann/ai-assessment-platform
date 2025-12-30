@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from app.middleware import register_exception_handlers
-from app.routers import assessment, audio
+from app.routers import assessment, audio, avatar
 from app.utils.logger import (
     initialize_logging,
     RequestLoggingMiddleware,
@@ -128,6 +128,12 @@ app.include_router(
 app.include_router(
     audio.router,
     tags=["audio"]
+)
+
+# Register avatar endpoints
+app.include_router(
+    avatar.router,
+    tags=["avatar"]
 )
 
 

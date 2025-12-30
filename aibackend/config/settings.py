@@ -5,9 +5,16 @@ This module handles all application configuration using Pydantic Settings.
 Environment variables are loaded from .env file or system environment.
 """
 
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal, Optional
+
+# Load .env file explicitly
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 
 class Settings(BaseSettings):

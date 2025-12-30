@@ -244,3 +244,35 @@
 .animation-delay-300 {
   animation-delay: 300ms;
 }
+
+.animation-delay-600 {
+  animation-delay: 600ms;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+@keyframes audio-wave {
+  0%, 100% {
+    transform: scaleY(0.3);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-audio-wave {
+  animation: audio-wave 0.8s ease-in-out infinite;
+}

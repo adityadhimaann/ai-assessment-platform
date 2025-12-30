@@ -25,8 +25,8 @@ export function LisaAvatar({ isSpeaking, message, size = "lg" }: LisaAvatarProps
   const sizeClasses = {
     sm: "w-16 h-16",
     md: "w-24 h-24",
-    lg: "w-32 h-32",
-    xl: "w-48 h-48"
+    lg: "w-40 h-40",
+    xl: "w-64 h-64"
   };
 
   return (

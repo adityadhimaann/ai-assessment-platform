@@ -66,6 +66,13 @@ export interface SessionSummary {
   score_trend: number[];
 }
 
+export interface AvatarResponse {
+  video_url: string | null;
+  talk_id: string | null;
+  status: string;
+  error?: string;
+}
+
 
 // Error response type
 export interface ErrorResponse {
@@ -226,6 +233,45 @@ export class APIClient {
     }
 
     return response.blob();
+  }
+
+  /**
+   * Create a talking avatar video with D-ID
+   */
+  async createTalkingAvatar(text: string, emotion: string = 'neutral'): Promise<AvatarResponse> {
+    const response = await fetch(`${this.baseURL}/avatar/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text, emotion }),
+    });
+
+    if (!response.ok) {
+      const error: ErrorResponse = await response.json();
+      throw new Error(error.message || 'Failed to create avatar');
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get avatar generation status
+   */
+  async getAvatarStatus(talkId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/avatar/status/${encodeURIComponent(talkId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error: ErrorResponse = await response.json();
+      throw new Error(error.message || 'Failed to get avatar status');
+    }
+
+    return response.json();
   }
 }
 
