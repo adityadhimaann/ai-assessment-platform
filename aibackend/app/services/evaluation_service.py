@@ -1,38 +1,38 @@
 """
 Evaluation Service
 
-This module provides answer evaluation functionality using OpenAI GPT-4o.
+This module provides answer evaluation functionality using Hybrid AI (GPT-4 + Gemini).
 It evaluates student answers, provides feedback, and suggests difficulty adjustments.
 """
 
 import json
 from typing import Dict, Any
 from app.models import EvaluationResult, Difficulty
-from app.clients.openai_client import OpenAIClient
+from app.clients.hybrid_ai_client import HybridAIClient
 from app.exceptions import EvaluationError, OpenAIAPIError
 from config.settings import Settings
 
 
 class EvaluationService:
     """
-    Service for evaluating student answers using AI.
+    Service for evaluating student answers using Hybrid AI (GPT-4 + Gemini).
     
-    This service uses GPT-4o to:
+    This service uses both GPT-4 and Gemini to:
     - Score student answers on a 0-100 scale
     - Determine correctness based on score threshold (>= 80)
-    - Provide constructive feedback
+    - Provide comprehensive feedback by combining insights from both models
     - Suggest difficulty adjustments for next questions
     """
     
-    def __init__(self, openai_client: OpenAIClient, dev_mode: bool = False):
+    def __init__(self, ai_client: HybridAIClient, dev_mode: bool = False):
         """
         Initialize the evaluation service.
         
         Args:
-            openai_client: OpenAI client for making API calls
+            ai_client: Hybrid AI client for making API calls
             dev_mode: Enable development mode with mock responses
         """
-        self.openai_client = openai_client
+        self.ai_client = ai_client
         self.dev_mode = dev_mode
         self.score_threshold = 80  # Score >= 80 is considered correct
     
@@ -85,7 +85,7 @@ class EvaluationService:
                 }
             ]
             
-            response_text = self.openai_client.chat_completion(
+            response_text = self.ai_client.chat_completion(
                 messages=messages,
                 response_format="json",
                 temperature=0.3,  # Lower temperature for more consistent evaluation
@@ -351,5 +351,5 @@ def create_evaluation_service(settings: Settings) -> EvaluationService:
     Returns:
         EvaluationService: Configured evaluation service instance
     """
-    openai_client = OpenAIClient(settings)
-    return EvaluationService(openai_client)
+    ai_client = HybridAIClient(settings)
+    return EvaluationService(ai_client)

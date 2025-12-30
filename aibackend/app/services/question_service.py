@@ -1,36 +1,37 @@
 """
 Question Service
 
-This module provides question generation functionality using OpenAI GPT-4o.
+This module provides question generation functionality using Hybrid AI (GPT-4 + Gemini).
 It generates questions appropriate to the specified topic and difficulty level.
 """
 
 from uuid import uuid4
 from app.models import Question, Difficulty
-from app.clients.openai_client import OpenAIClient
+from app.clients.hybrid_ai_client import HybridAIClient
 from app.exceptions import QuestionGenerationError, OpenAIAPIError
 from config.settings import Settings
 
 
 class QuestionService:
     """
-    Service for generating assessment questions using AI.
+    Service for generating assessment questions using Hybrid AI (GPT-4 + Gemini).
     
-    This service uses GPT-4o to:
+    This service uses both GPT-4 and Gemini to:
     - Generate questions based on topic and difficulty level
+    - Select the best question from both models
     - Ensure questions are appropriate for the specified difficulty
     - Assign unique identifiers to each question
     """
     
-    def __init__(self, openai_client: OpenAIClient, dev_mode: bool = False):
+    def __init__(self, ai_client: HybridAIClient, dev_mode: bool = False):
         """
         Initialize the question service.
         
         Args:
-            openai_client: OpenAI client for making API calls
+            ai_client: Hybrid AI client for making API calls
             dev_mode: Enable development mode with mock responses
         """
-        self.openai_client = openai_client
+        self.ai_client = ai_client
         self.dev_mode = dev_mode
     
     def generate_question(
@@ -83,10 +84,10 @@ class QuestionService:
                     }
                 ]
                 
-                question_text = self.openai_client.chat_completion(
+                question_text = self.ai_client.chat_completion(
                     messages=messages,
                     response_format="text",
-                    temperature=0.8  # Higher temperature for more varied questions
+                    temperature=0.9  # High temperature for maximum variety and creativity
                 )
                 
                 # Validate the response
@@ -168,28 +169,88 @@ class QuestionService:
         Returns:
             str: The formatted prompt for GPT-4o
         """
-        prompt = f"""Generate a high-quality {difficulty.value} level practice question about {topic}.
+        
+        # Difficulty-specific guidelines
+        difficulty_guidelines = {
+            Difficulty.EASY: """
+**EASY Level Guidelines:**
+- Focus on FUNDAMENTAL concepts and basic definitions
+- Test recall and basic comprehension
+- Questions should be answerable with 2-3 sentences
+- Examples: "What is...", "Define...", "List the main components of...", "Explain the basic purpose of..."
+- Avoid: Complex scenarios, multi-step reasoning, advanced terminology
+- Target: Someone learning the topic for the first time
+""",
+            Difficulty.MEDIUM: """
+**MEDIUM Level Guidelines:**
+- Focus on PRACTICAL APPLICATION and understanding relationships
+- Test how concepts work together and why they matter
+- Questions should require 3-4 sentences with examples
+- Examples: "How does... work in practice?", "Why is... important for...", "Compare... and...", "What happens when..."
+- Include: Real-world scenarios, cause-and-effect, practical implications
+- Target: Someone with basic knowledge who needs to apply it
+""",
+            Difficulty.HARD: """
+**HARD Level Guidelines:**
+- Focus on ADVANCED ANALYSIS, evaluation, and synthesis
+- Test deep understanding, trade-offs, and complex problem-solving
+- Questions should require 4-5 sentences with detailed reasoning
+- Examples: "Analyze the trade-offs between...", "Design a solution for...", "Evaluate the impact of...", "How would you optimize..."
+- Include: Edge cases, system design, architectural decisions, performance considerations
+- Target: Someone with solid understanding who can think critically
+"""
+        }
+        
+        prompt = f"""Generate a high-quality {difficulty.value} level interview question about {topic}.
 
-Difficulty Guidelines:
-- Easy: Test fundamental concepts, definitions, and basic understanding. Questions should be straightforward and focus on core knowledge that forms the foundation of the topic.
-- Medium: Test practical application, analysis, and connections between concepts. Questions should require reasoning, explanation, and demonstration of how concepts work together.
-- Hard: Test advanced problem-solving, critical evaluation, and synthesis of multiple concepts. Questions should challenge deep understanding and require sophisticated analytical thinking.
+{difficulty_guidelines[difficulty]}
 
-Question Quality Requirements:
-- Make the question SPECIFIC and FOCUSED on a particular aspect of {topic}
-- Ensure it's PRACTICAL and relevant to real-world understanding or application
-- Frame it to encourage DETAILED, THOUGHTFUL responses
-- Make it CLEAR and UNAMBIGUOUS with no room for misinterpretation
-- Design it to be EDUCATIONAL - answering should help reinforce learning
-- Keep it CONCISE but comprehensive enough to test understanding
-- Make it answerable in 2-4 sentences for a complete response
+**Topic Context: {topic}**
 
-Question Types to Consider:
-- Easy: "What is...", "Define...", "List the main...", "Explain the basic..."
-- Medium: "How does... work?", "Why is... important?", "Compare...", "What happens when..."
-- Hard: "Analyze...", "Evaluate the impact of...", "Design a solution for...", "What are the trade-offs..."
+**Question Quality Requirements:**
+1. SPECIFICITY: Focus on ONE specific aspect of {topic}, not general overview
+2. CLARITY: Make it crystal clear what you're asking - no ambiguity
+3. RELEVANCE: Ensure it's practical and commonly encountered in real scenarios
+4. DEPTH: Match the complexity to the difficulty level exactly
+5. VARIETY: Avoid generic questions - be creative and specific
+6. EDUCATIONAL: Answering should reinforce learning and understanding
 
-Return ONLY the question text - no preamble, no explanation, no formatting marks."""
+**Question Structure:**
+- Start with a clear question word (What, How, Why, When, etc.)
+- Be specific about the context or scenario
+- Keep it concise but complete (1-2 sentences max)
+- Make it conversational and natural for an interview setting
+
+**Examples of GOOD questions by difficulty:**
+
+EASY:
+- "What is the main purpose of {topic} in modern applications?"
+- "Can you explain what happens when you use {topic} for the first time?"
+- "What are the three key components that make up {topic}?"
+
+MEDIUM:
+- "How would you implement {topic} in a production environment with 1000 users?"
+- "Why might a developer choose {topic} over alternative approaches?"
+- "What are the common pitfalls when working with {topic}, and how do you avoid them?"
+
+HARD:
+- "Design a scalable architecture using {topic} that handles 1 million requests per day. What are your key considerations?"
+- "Analyze the performance trade-offs between different {topic} implementations in high-concurrency scenarios."
+- "How would you debug a complex issue in {topic} where standard approaches aren't working?"
+
+**Examples of BAD questions to AVOID:**
+- Too vague: "Tell me about {topic}" (not specific enough)
+- Too broad: "Explain everything about {topic}" (too general)
+- Too simple for level: "What is {topic}?" (for Hard difficulty)
+- Too complex for level: "Design a distributed system..." (for Easy difficulty)
+
+**IMPORTANT:**
+- Generate a UNIQUE question - don't repeat common interview questions
+- Match the difficulty level EXACTLY - Easy should be genuinely easy, Hard should be genuinely challenging
+- Make it INTERVIEW-STYLE - conversational and natural
+- Focus on ONE clear concept or scenario
+
+Return ONLY the question text - no preamble, no explanation, no formatting marks, no quotes."""
         
         return prompt
 
@@ -204,5 +265,5 @@ def create_question_service(settings: Settings) -> QuestionService:
     Returns:
         QuestionService: Configured question service instance
     """
-    openai_client = OpenAIClient(settings)
-    return QuestionService(openai_client)
+    ai_client = HybridAIClient(settings)
+    return QuestionService(ai_client)

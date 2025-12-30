@@ -4,7 +4,7 @@ import { QuestionSidebar } from "@/components/dashboard/QuestionSidebar";
 import { FeedbackOverlay } from "@/components/dashboard/FeedbackOverlay";
 import { TopicSelector } from "@/components/dashboard/TopicSelector";
 import { ResultsPage } from "@/components/dashboard/ResultsPage";
-import { FastLisaAvatar } from "@/components/dashboard/FastLisaAvatar";
+import { HybridLisaAvatar } from "@/components/dashboard/HybridLisaAvatar";
 import { ConversationPanel } from "@/components/dashboard/ConversationPanel";
 import { Button } from "@/components/ui/button";
 import { Mic, Send, MicOff, RotateCcw } from "lucide-react";
@@ -21,7 +21,7 @@ const Index = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [isLisaSpeaking, setIsLisaSpeaking] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [lisaEmotion, setLisaEmotion] = useState<"neutral" | "asking" | "listening" | "thinking" | "happy" | "encouraging">("neutral");
 
   const {
@@ -60,7 +60,7 @@ const Index = () => {
     await startAssessment();
   }, [setTopic, startAssessment]);
 
-  // Auto-read question when it changes - INSTANT with no delay!
+  // Auto-read question - PARALLEL audio + video generation for speed!
   useEffect(() => {
     const readQuestion = async () => {
       if (currentQuestion && 
@@ -72,20 +72,27 @@ const Index = () => {
           setIsLisaSpeaking(true);
           setLisaEmotion("asking");
           
-          // Get audio from backend (ElevenLabs - fast!)
-          const audioBlob = await apiClient.readQuestion(currentQuestion.question);
-          const url = URL.createObjectURL(audioBlob);
-          setAudioUrl(url);
+          // Stop any existing audio
+          if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+          }
           
-          // Audio will auto-play in FastLisaAvatar component
-          // Set a timeout to match audio duration (estimate or use actual duration)
-          setTimeout(() => {
+          // Get audio from ElevenLabs (fast - 2-3s)
+          // D-ID video generation happens in parallel in HybridLisaAvatar
+          const audioBlob = await apiClient.readQuestion(currentQuestion.question);
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
+          setCurrentAudio(audio);
+          
+          audio.onended = () => {
             setIsLisaSpeaking(false);
             setLisaEmotion("listening");
-            setAudioUrl(null);
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(audioUrl);
+            setCurrentAudio(null);
             
-            // Auto-start recording after Lisa finishes
+            // Auto-start recording after Lisa finishes speaking
             setTimeout(() => {
               if (isSupported && !isListening && !transcript) {
                 startListening();
@@ -96,7 +103,18 @@ const Index = () => {
                 });
               }
             }, 500);
-          }, 5000); // Adjust based on question length
+          };
+          
+          audio.onerror = () => {
+            setIsLisaSpeaking(false);
+            setLisaEmotion("neutral");
+            URL.revokeObjectURL(audioUrl);
+            setCurrentAudio(null);
+            console.error("Error playing question audio");
+          };
+          
+          // Play audio immediately (don't wait for D-ID video)
+          await audio.play();
           
         } catch (error) {
           console.error("Error reading question:", error);
@@ -302,9 +320,9 @@ const Index = () => {
           {/* Left Side - Lisa Avatar */}
           <div className="w-[400px] flex-shrink-0">
             <div className="glass-card h-[calc(100vh-200px)] flex flex-col items-center justify-center p-8">
-              <FastLisaAvatar 
+              <HybridLisaAvatar 
                 isSpeaking={isLisaSpeaking}
-                audioUrl={audioUrl || undefined}
+                questionText={currentQuestion?.question}
                 emotion={lisaEmotion}
                 size="xl"
               />
