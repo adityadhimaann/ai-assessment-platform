@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { Volume2, VolumeX, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
+import lisaGif from "@/assets/lisa.gif";
+import lisaPng from "@/assets/lisa.png";
 
 interface HybridLisaAvatarProps {
   isSpeaking: boolean;
@@ -98,9 +100,9 @@ export function HybridLisaAvatar({
     xl: "w-80 h-80"
   };
 
-  // Professional AI avatar image (Amy from D-ID)
+  // Lisa avatar image (animated when speaking, static when idle)
   const getStaticAvatar = () => {
-    return "https://create-images-results.d-id.com/DefaultPresenters/Amy/image.png";
+    return isSpeaking ? lisaGif : lisaPng;
   };
 
   // Calculate mouth opening based on audio level

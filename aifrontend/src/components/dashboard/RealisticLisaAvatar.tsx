@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { Volume2, VolumeX, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
+import lisaGif from "@/assets/lisa.gif";
+import lisaPng from "@/assets/lisa.png";
 
 interface RealisticLisaAvatarProps {
   isSpeaking: boolean;
@@ -68,19 +70,9 @@ export function RealisticLisaAvatar({
     xl: "w-80 h-80"
   };
 
-  // Fallback avatar images (professional AI-generated avatars)
+  // Fallback avatar images (Lisa avatar)
   const getFallbackAvatar = () => {
-    // Using professional AI avatar images
-    const avatarImages = {
-      neutral: "https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.jpeg",
-      asking: "https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.jpeg",
-      listening: "https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.jpeg",
-      thinking: "https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.jpeg",
-      happy: "https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.jpeg",
-      encouraging: "https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.jpeg"
-    };
-    
-    return avatarImages[currentEmotion];
+    return isSpeaking ? lisaGif : lisaPng;
   };
 
   return (
