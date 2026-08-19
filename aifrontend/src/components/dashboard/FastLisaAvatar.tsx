@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import lisaGif from "@/assets/lisa.gif";
 import lisaPng from "@/assets/lisa.png";

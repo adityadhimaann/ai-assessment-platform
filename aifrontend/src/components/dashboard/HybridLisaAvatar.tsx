@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
 import lisaGif from "@/assets/lisa.gif";
@@ -147,14 +147,6 @@ export function HybridLisaAvatar({
           
           {/* Avatar content */}
           <div className="relative w-full h-full flex items-center justify-center">
-            {/* Loading overlay */}
-            {isLoadingVideo && !showVideo && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-20">
-                <Loader2 className="w-12 h-12 animate-spin text-primary mb-2" />
-                <p className="text-xs text-muted-foreground">Generating video...</p>
-              </div>
-            )}
-            
             {/* D-ID Video (when ready) */}
             {showVideo && videoUrl ? (
               <video
@@ -171,66 +163,24 @@ export function HybridLisaAvatar({
                 }}
               />
             ) : (
-              /* Static Avatar (instant fallback) */
+              /* Lisa Avatar */
               <div className="relative w-full h-full">
                 <img 
                   src={getStaticAvatar()}
                   alt="Lisa AI Assistant" 
                   className={cn(
                     "w-full h-full object-cover transition-all duration-300",
-                    isSpeaking && "brightness-110"
+                    isSpeaking && "brightness-105"
                   )}
                 />
-                
-                {/* Mouth animation overlay (only when no video) */}
-                {isSpeaking && audioLevel > 0.1 && (
-                  <div 
-                    className="absolute bottom-[35%] left-1/2 -translate-x-1/2 w-12 h-8 rounded-full bg-gradient-to-b from-pink-200/40 to-red-300/40 dark:from-pink-900/40 dark:to-red-900/40 blur-sm transition-transform duration-75"
-                    style={{
-                      transform: `translateX(-50%) scaleY(${getMouthScale()})`,
-                    }}
-                  />
-                )}
               </div>
             )}
             
-            {/* Animated overlay effects */}
+            {/* Animated subtle glow when speaking */}
             {isSpeaking && (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent animate-pulse" />
-                <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-blue-500/20 to-transparent animate-pulse" />
-              </>
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none" />
             )}
           </div>
-
-          {/* Lip sync indicator dots (only when no video) */}
-          {isSpeaking && !showVideo && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1">
-              <div 
-                className="w-2 h-2 rounded-full bg-primary transition-all duration-100" 
-                style={{ 
-                  transform: `scale(${1 + audioLevel})`,
-                  opacity: 0.5 + audioLevel * 0.5
-                }} 
-              />
-              <div 
-                className="w-2 h-2 rounded-full bg-primary transition-all duration-100" 
-                style={{ 
-                  transform: `scale(${1 + audioLevel * 0.8})`,
-                  opacity: 0.5 + audioLevel * 0.5,
-                  transitionDelay: "50ms"
-                }} 
-              />
-              <div 
-                className="w-2 h-2 rounded-full bg-primary transition-all duration-100" 
-                style={{ 
-                  transform: `scale(${1 + audioLevel * 0.6})`,
-                  opacity: 0.5 + audioLevel * 0.5,
-                  transitionDelay: "100ms"
-                }} 
-              />
-            </div>
-          )}
         </div>
 
         {/* Volume indicator badge */}
@@ -258,24 +208,6 @@ export function HybridLisaAvatar({
             {currentEmotion === "neutral" && "😌"}
           </span>
         </div>
-
-        {/* Video status badge */}
-        {isLoadingVideo && (
-          <div className="absolute -top-3 -left-3 px-2 py-1 rounded-full bg-primary/90 backdrop-blur-sm border border-primary shadow-lg">
-            <span className="text-xs font-medium text-primary-foreground flex items-center gap-1">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              HD
-            </span>
-          </div>
-        )}
-        
-        {showVideo && (
-          <div className="absolute -top-3 -left-3 px-2 py-1 rounded-full bg-green-500/90 backdrop-blur-sm border border-green-500 shadow-lg">
-            <span className="text-xs font-medium text-white">
-              ✓ HD
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Audio wave visualization */}

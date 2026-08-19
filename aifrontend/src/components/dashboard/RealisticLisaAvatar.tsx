@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
 import lisaGif from "@/assets/lisa.gif";
@@ -111,11 +111,6 @@ export function RealisticLisaAvatar({
           
           {/* Avatar video/image */}
           <div className="relative w-full h-full flex items-center justify-center">
-            {isLoadingVideo && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-                <Loader2 className="w-12 h-12 animate-spin text-primary" />
-              </div>
-            )}
             
             {videoUrl && !useFallback ? (
               <video
