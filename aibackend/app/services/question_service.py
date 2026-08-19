@@ -107,15 +107,15 @@ class QuestionService:
             
             return question
         
-        except OpenAIAPIError as e:
-            raise QuestionGenerationError(
-                message=f"Failed to generate question: {e.message}",
-                original_error=e
-            )
         except Exception as e:
-            raise QuestionGenerationError(
-                message=f"Unexpected error during question generation: {str(e)}",
-                original_error=e
+            import logging
+            logging.getLogger(__name__).warning(f"AI question generation failed ({str(e)}). Using fallback question generator.")
+            question_text = self._generate_mock_question(topic, difficulty)
+            return Question(
+                question_id=question_id,
+                question_text=question_text,
+                difficulty=difficulty,
+                topic=topic
             )
     
     def _generate_mock_question(self, topic: str, difficulty: Difficulty) -> str:

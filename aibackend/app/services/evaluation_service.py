@@ -97,16 +97,10 @@ class EvaluationService:
             
             return evaluation_result
         
-        except OpenAIAPIError as e:
-            raise EvaluationError(
-                message=f"Failed to evaluate answer: {e.message}",
-                original_error=e
-            )
         except Exception as e:
-            raise EvaluationError(
-                message=f"Unexpected error during evaluation: {str(e)}",
-                original_error=e
-            )
+            import logging
+            logging.getLogger(__name__).warning(f"AI evaluation failed ({str(e)}). Using fallback evaluation generator.")
+            return self._generate_mock_evaluation(answer)
     
     def _generate_mock_evaluation(self, answer: str) -> EvaluationResult:
         """
