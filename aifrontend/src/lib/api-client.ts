@@ -236,6 +236,46 @@ export class APIClient {
   }
 
   /**
+   * Read question with ElevenLabs character timestamps and alignment
+   */
+  async readQuestionWithAlignment(questionText: string): Promise<{
+    audioBlob: Blob;
+    alignment: {
+      characters: string[];
+      character_start_times_seconds: number[];
+      character_end_times_seconds: number[];
+    };
+  }> {
+    const response = await fetch(`${this.baseURL}/read-question-with-alignment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ feedback_text: questionText }),
+    });
+
+    if (!response.ok) {
+      const error: ErrorResponse = await response.json();
+      throw new Error(error.message || 'Failed to read question with alignment');
+    }
+
+    const data = await response.json();
+    
+    // Decode base64 audio to Blob
+    const binaryString = atob(data.audio_base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+
+    return {
+      audioBlob,
+      alignment: data.alignment,
+    };
+  }
+
+  /**
    * Create a talking avatar video with D-ID
    */
   async createTalkingAvatar(text: string, emotion: string = 'neutral'): Promise<AvatarResponse> {

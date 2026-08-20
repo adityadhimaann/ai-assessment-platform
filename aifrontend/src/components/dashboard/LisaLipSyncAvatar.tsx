@@ -3,10 +3,17 @@ import { Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import lisaRealNeutral from "@/assets/lisa_real_neutral.jpg";
 
+export interface ElevenLabsAlignmentData {
+  characters: string[];
+  character_start_times_seconds: number[];
+  character_end_times_seconds: number[];
+}
+
 interface LisaLipSyncAvatarProps {
   isSpeaking: boolean;
   audioElement?: HTMLAudioElement | null;
   audioBlob?: Blob | null;
+  alignment?: ElevenLabsAlignmentData | null;
   emotion?: "neutral" | "asking" | "listening" | "thinking" | "happy" | "encouraging";
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
@@ -16,6 +23,7 @@ export function LisaLipSyncAvatar({
   isSpeaking,
   audioElement,
   audioBlob,
+  alignment,
   emotion = "neutral",
   size = "xl",
   className,
@@ -30,6 +38,7 @@ export function LisaLipSyncAvatar({
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const smoothMouthRef = useRef(0);
+  const smoothSpreadRef = useRef(0);
   const smoothLevelRef = useRef(0);
 
   // Blinking reference
@@ -88,25 +97,50 @@ export function LisaLipSyncAvatar({
   useEffect(() => {
     let fallbackPhase = 0;
 
+    // Helper: Binary search for character in ElevenLabs alignment
+    const getCharFromAlignment = (time: number): string => {
+      if (!alignment || !alignment.characters || alignment.characters.length === 0) return "";
+      const starts = alignment.character_start_times_seconds;
+      const ends = alignment.character_end_times_seconds;
+
+      let low = 0;
+      let high = starts.length - 1;
+
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        if (time >= starts[mid] && time <= ends[mid]) {
+          return alignment.characters[mid];
+        }
+        if (time < starts[mid]) {
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
+      }
+      return "";
+    };
+
     const render = () => {
       const canvas = canvasRef.current;
       const img = imageRef.current;
 
       let targetMouth = 0;
+      let targetSpread = 0;
       let targetLevel = 0;
 
-      // 1. Calculate continuous speech energy from PCM data
+      // 1. Calculate speech viseme from ElevenLabs alignment & PCM energy
       if (isSpeaking) {
-        const buffer = audioBufferRef.current;
         const audio = audioElement;
+        const currentTime = audio ? audio.currentTime : 0;
+        const buffer = audioBufferRef.current;
 
+        // Measure real-time RMS energy
+        let rms = 0;
         if (buffer && audio && !audio.paused && !audio.ended) {
           const sampleRate = buffer.sampleRate;
-          const currentTime = audio.currentTime;
           const currentSample = Math.floor(currentTime * sampleRate);
           const channelData = buffer.getChannelData(0);
 
-          // 15ms window around current playback timestamp
           const windowSize = Math.floor(sampleRate * 0.015);
           const start = Math.max(0, currentSample - Math.floor(windowSize / 2));
           const end = Math.min(channelData.length, start + windowSize);
@@ -117,34 +151,82 @@ export function LisaLipSyncAvatar({
               const val = channelData[i];
               sumSq += val * val;
             }
-            const rms = Math.sqrt(sumSq / (end - start));
-
-            // Smooth continuous normalization
-            const rawNormalized = (rms - 0.014) / 0.15;
-            targetMouth = Math.min(1, Math.max(0, rawNormalized));
-            targetLevel = Math.min(1, Math.max(0, (rms - 0.01) / 0.16));
+            rms = Math.sqrt(sumSq / (end - start));
+            targetLevel = Math.min(1, Math.max(0, (rms - 0.008) / 0.16));
           }
+        }
+
+        // Check ElevenLabs Character-Level Alignment
+        if (alignment && audio && !audio.paused && !audio.ended) {
+          const char = getCharFromAlignment(currentTime).toLowerCase();
+
+          if (char) {
+            // ElevenLabs Viseme Mapping
+            if (["a", "o", "u", "w"].includes(char)) {
+              // Open Vowel (AA / OH)
+              targetMouth = 0.85;
+              targetSpread = -0.1;
+            } else if (["e", "i", "y"].includes(char)) {
+              // Wide Smile Vowel (EE / IY)
+              targetMouth = 0.55;
+              targetSpread = 0.75;
+            } else if (["m", "b", "p"].includes(char)) {
+              // Closed Bilabial (MBP)
+              targetMouth = 0.0;
+              targetSpread = 0.0;
+            } else if (["f", "v"].includes(char)) {
+              // Labiodental (FV)
+              targetMouth = 0.22;
+              targetSpread = 0.2;
+            } else if (["l", "d", "t", "n", "s", "z", "r", "k", "g", "j", "c", "h"].includes(char)) {
+              // Dental / Alveolar (LDT)
+              targetMouth = 0.42;
+              targetSpread = 0.4;
+            } else {
+              // Punctuation / Space / Pause
+              targetMouth = 0.0;
+              targetSpread = 0.0;
+            }
+
+            // Modulate with RMS energy if available
+            if (rms > 0) {
+              const energyScale = Math.min(1.2, Math.max(0.4, (rms - 0.01) / 0.12));
+              targetMouth *= energyScale;
+            }
+          } else {
+            targetMouth = 0;
+            targetSpread = 0;
+          }
+        } else if (rms > 0) {
+          // Continuous PCM waveform fallback
+          const rawNormalized = (rms - 0.012) / 0.15;
+          targetMouth = Math.min(1, Math.max(0, rawNormalized));
+          targetSpread = 0.2;
         } else {
-          // Fallback organic speech cadence while decoding
+          // Organic speech cadence while decoding
           fallbackPhase += 0.1;
           const wave1 = Math.sin(fallbackPhase * 3.2);
           const wave2 = Math.sin(fallbackPhase * 6.4);
           const cadence = Math.max(0, Math.sin(fallbackPhase * 1.1));
           const raw = Math.max(0, wave1 * 0.6 + wave2 * 0.4 + 0.15) * cadence;
           targetMouth = Math.min(1, raw * 1.1);
+          targetSpread = 0.3;
           targetLevel = targetMouth * 0.8;
         }
       } else {
         targetMouth = 0;
+        targetSpread = 0;
         targetLevel = 0;
       }
 
-      // Smooth attack/release filtering for organic, fluid lip movement (no photo swapping)
-      const attackCoeff = targetMouth > smoothMouthRef.current ? 0.7 : 0.35;
+      // Smooth attack/release filtering for organic, fluid lip movement
+      const attackCoeff = targetMouth > smoothMouthRef.current ? 0.75 : 0.4;
       smoothMouthRef.current += (targetMouth - smoothMouthRef.current) * attackCoeff;
+      smoothSpreadRef.current += (targetSpread - smoothSpreadRef.current) * 0.35;
       smoothLevelRef.current += (targetLevel - smoothLevelRef.current) * 0.35;
 
       const mouthOpenAmount = smoothMouthRef.current;
+      const mouthSpreadAmount = smoothSpreadRef.current;
       setAudioLevel(smoothLevelRef.current);
 
       // 2. Draw real-time morphed face on canvas
@@ -193,8 +275,8 @@ export function LisaLipSyncAvatar({
           if (mouthOpenAmount > 0.01) {
             const centerX = w * 0.502;
             const centerY = h * 0.478;
-            const mouthWidth = w * 0.075 + (mouthOpenAmount * w * 0.008);
-            const openHeight = mouthOpenAmount * (h * 0.034);
+            const mouthWidth = w * 0.072 + (mouthSpreadAmount * w * 0.012) + (mouthOpenAmount * w * 0.005);
+            const openHeight = mouthOpenAmount * (h * 0.035);
 
             const leftX = centerX - mouthWidth;
             const rightX = centerX + mouthWidth;
@@ -287,7 +369,7 @@ export function LisaLipSyncAvatar({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isSpeaking, audioElement, imageLoaded]);
+  }, [isSpeaking, audioElement, imageLoaded, alignment]);
 
   // Size mapping
   const sizeMap = {
@@ -413,7 +495,7 @@ export function LisaLipSyncAvatar({
             isSpeaking ? "text-primary animate-pulse" : "text-muted-foreground"
           )}
         >
-          {isSpeaking && "Lisa is speaking..."}
+          {isSpeaking && "Lisa is speaking (ElevenLabs Lip-Sync)..."}
           {!isSpeaking && emotion === "listening" && "Lisa is listening to you..."}
           {!isSpeaking && emotion === "thinking" && "Evaluating your response..."}
           {!isSpeaking && emotion === "neutral" && "Ready for your answer"}

@@ -16,6 +16,8 @@ import lisaGif from "@/assets/lisa.gif";
 
 const TOTAL_QUESTIONS = 10;
 
+import { ElevenLabsAlignmentData } from "@/components/dashboard/LisaLipSyncAvatar";
+
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -23,6 +25,7 @@ const Index = () => {
   const [isLisaSpeaking, setIsLisaSpeaking] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [currentAudioBlob, setCurrentAudioBlob] = useState<Blob | null>(null);
+  const [currentAlignment, setCurrentAlignment] = useState<ElevenLabsAlignmentData | null>(null);
   const [lisaEmotion, setLisaEmotion] = useState<"neutral" | "asking" | "listening" | "thinking" | "happy" | "encouraging">("neutral");
 
   const {
@@ -79,12 +82,13 @@ const Index = () => {
             currentAudio.currentTime = 0;
           }
           
-          // Get audio from ElevenLabs (fast - 2-3s)
-          const audioBlob = await apiClient.readQuestion(currentQuestion.question);
+          // Get audio & character alignment from ElevenLabs
+          const { audioBlob, alignment } = await apiClient.readQuestionWithAlignment(currentQuestion.question);
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);
           
           setCurrentAudioBlob(audioBlob);
+          setCurrentAlignment(alignment);
           setCurrentAudio(audio);
           
           audio.onended = () => {
@@ -93,6 +97,7 @@ const Index = () => {
             URL.revokeObjectURL(audioUrl);
             setCurrentAudio(null);
             setCurrentAudioBlob(null);
+            setCurrentAlignment(null);
             
             // Auto-start recording after Lisa finishes speaking
             setTimeout(() => {
@@ -113,10 +118,11 @@ const Index = () => {
             URL.revokeObjectURL(audioUrl);
             setCurrentAudio(null);
             setCurrentAudioBlob(null);
+            setCurrentAlignment(null);
             console.error("Error playing question audio");
           };
           
-          // Play audio immediately (don't wait for D-ID video)
+          // Play audio immediately with ElevenLabs synchronized lip-sync
           await audio.play();
           
         } catch (error) {
@@ -330,6 +336,7 @@ const Index = () => {
                 size="xl"
                 audioElement={currentAudio}
                 audioBlob={currentAudioBlob}
+                alignment={currentAlignment}
               />
               
               {/* Lisa's name */}

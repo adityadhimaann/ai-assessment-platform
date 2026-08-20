@@ -230,3 +230,37 @@ async def read_question(
                 "message": f"Failed to read question: {str(e)}"
             }
         )
+
+
+@router.post(
+    "/read-question-with-alignment",
+    status_code=status.HTTP_200_OK,
+    summary="Read question with ElevenLabs character alignment timestamps",
+    description="Generate voice audio with timestamped character viseme alignments from ElevenLabs"
+)
+async def read_question_with_alignment(
+    request: VoiceFeedbackRequest,
+    voice_service: Annotated[VoiceService, Depends(get_voice_service)]
+) -> dict:
+    """
+    Generate voice audio and character alignment timestamps from ElevenLabs.
+    """
+    try:
+        data = voice_service.generate_voice_with_timestamps(
+            text=request.feedback_text
+        )
+        return data
+    except TTSAPIError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=e.to_dict()
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error_type": "InternalServerError",
+                "message": f"Failed to generate speech alignment: {str(e)}"
+            }
+        )
+

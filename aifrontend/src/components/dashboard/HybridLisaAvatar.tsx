@@ -1,5 +1,5 @@
 import React from "react";
-import { LisaLipSyncAvatar } from "./LisaLipSyncAvatar";
+import { LisaLipSyncAvatar, ElevenLabsAlignmentData } from "./LisaLipSyncAvatar";
 
 interface HybridLisaAvatarProps {
   isSpeaking: boolean;
@@ -8,6 +8,7 @@ interface HybridLisaAvatarProps {
   size?: "sm" | "md" | "lg" | "xl";
   audioElement?: HTMLAudioElement | null;
   audioBlob?: Blob | null;
+  alignment?: ElevenLabsAlignmentData | null;
   onAudioReady?: (audioUrl: string) => void;
   className?: string;
 }
@@ -18,6 +19,7 @@ export function HybridLisaAvatar({
   size = "xl",
   audioElement,
   audioBlob,
+  alignment,
   className
 }: HybridLisaAvatarProps) {
   return (
@@ -25,6 +27,7 @@ export function HybridLisaAvatar({
       isSpeaking={isSpeaking}
       audioElement={audioElement}
       audioBlob={audioBlob}
+      alignment={alignment}
       emotion={emotion}
       size={size}
       className={className}

@@ -358,11 +358,70 @@ class VoiceService:
                     original_error=e
                 )
         
-        # Should never reach here, but just in case
+    def generate_voice_with_timestamps(
+        self,
+        text: str,
+        voice: Optional[str] = None,
+        model: Optional[str] = None
+    ) -> dict:
+        """
+        Generate audio and character-level alignment timestamps using ElevenLabs.
+        
+        Args:
+            text: The text to convert to speech
+            voice: Optional voice ID
+            model: Optional model ID
+            
+        Returns:
+            dict: { "audio_base64": str, "alignment": dict, "normalized_alignment": dict }
+        """
+        if not text or not text.strip():
+            raise TTSAPIError(message="Text cannot be empty", service="ElevenLabs")
+        
+        voice_id = voice or self.settings.elevenlabs_voice_id or "Xb7hH8MSUJpSbSDYk0k2"
+        model_id = model or self.settings.elevenlabs_model_id or "eleven_multilingual_v2"
+        
+        url = f"{self.elevenlabs_base_url}/text-to-speech/{voice_id}/with-timestamps"
+        headers = {
+            "Content-Type": "application/json",
+            "xi-api-key": self.elevenlabs_api_key
+        }
+        data = {
+            "text": text,
+            "model_id": model_id,
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
+        
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.post(url, json=data, headers=headers, timeout=30)
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 429:
+                    if attempt < self.max_retries - 1:
+                        time.sleep(self.retry_delay * (2 ** attempt))
+                        continue
+                raise TTSAPIError(
+                    message=f"ElevenLabs error {response.status_code}: {response.text}",
+                    service="ElevenLabs"
+                )
+            except Exception as e:
+                if attempt == self.max_retries - 1:
+                    raise TTSAPIError(
+                        message=f"ElevenLabs alignment request failed: {str(e)}",
+                        service="ElevenLabs",
+                        original_error=e
+                    )
+                time.sleep(self.retry_delay * (2 ** attempt))
+
         raise TTSAPIError(
-            message="Failed to generate audio after all retries",
+            message="Failed to generate alignment after retries",
             service="ElevenLabs"
         )
+
 
 
 def create_voice_service(settings: Settings) -> VoiceService:
