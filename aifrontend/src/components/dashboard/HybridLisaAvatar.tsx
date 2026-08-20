@@ -1,250 +1,30 @@
-import { useEffect, useState, useRef } from "react";
-import { Volume2, VolumeX } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { apiClient } from "@/lib/api-client";
-import lisaGif from "@/assets/lisa.gif";
-import lisaPng from "@/assets/lisa.png";
+import React from "react";
+import { LisaLipSyncAvatar } from "./LisaLipSyncAvatar";
 
 interface HybridLisaAvatarProps {
   isSpeaking: boolean;
   questionText?: string;
   emotion?: "neutral" | "asking" | "listening" | "thinking" | "happy" | "encouraging";
   size?: "sm" | "md" | "lg" | "xl";
+  audioElement?: HTMLAudioElement | null;
   onAudioReady?: (audioUrl: string) => void;
+  className?: string;
 }
 
 export function HybridLisaAvatar({ 
   isSpeaking, 
-  questionText,
   emotion = "neutral",
   size = "xl",
-  onAudioReady
+  audioElement,
+  className
 }: HybridLisaAvatarProps) {
-  const [currentEmotion, setCurrentEmotion] = useState(emotion);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [audioLevel, setAudioLevel] = useState(0);
-  const animationFrameRef = useRef<number>();
-
-  useEffect(() => {
-    setCurrentEmotion(emotion);
-  }, [emotion]);
-
-  // Generate D-ID video when speaking starts
-  useEffect(() => {
-    const generateVideo = async () => {
-      if (isSpeaking && questionText) {
-        setIsLoadingVideo(true);
-        setShowVideo(false);
-        
-        try {
-          console.log("🎬 Starting D-ID video generation...");
-          const result = await apiClient.createTalkingAvatar(questionText, emotion);
-          
-          if (result.status === "ready" && result.video_url) {
-            console.log("✅ D-ID video ready:", result.video_url);
-            setVideoUrl(result.video_url);
-            setShowVideo(true);
-            
-            // Notify parent that audio is ready (D-ID video includes audio)
-            if (onAudioReady) {
-              onAudioReady(result.video_url);
-            }
-          } else {
-            console.log("⏳ D-ID video still processing, status:", result.status);
-          }
-        } catch (error) {
-          console.error("❌ Error generating D-ID video:", error);
-        } finally {
-          setIsLoadingVideo(false);
-        }
-      } else {
-        // Reset when not speaking
-        setVideoUrl(null);
-        setShowVideo(false);
-      }
-    };
-
-    generateVideo();
-  }, [isSpeaking, questionText, emotion, onAudioReady]);
-
-  // Play video when URL is available
-  useEffect(() => {
-    if (videoUrl && videoRef.current && showVideo) {
-      videoRef.current.play().catch(err => {
-        console.error("Error playing video:", err);
-      });
-    }
-  }, [videoUrl, showVideo]);
-
-  // Audio visualization for static avatar
-  useEffect(() => {
-    if (isSpeaking && !showVideo) {
-      // Simulate audio levels for static avatar
-      const interval = setInterval(() => {
-        setAudioLevel(Math.random() * 0.8 + 0.2);
-      }, 100);
-      
-      return () => clearInterval(interval);
-    } else {
-      setAudioLevel(0);
-    }
-  }, [isSpeaking, showVideo]);
-
-  const sizeClasses = {
-    sm: "w-32 h-32",
-    md: "w-48 h-48",
-    lg: "w-64 h-64",
-    xl: "w-80 h-80"
-  };
-
-  // Lisa avatar image (animated when speaking, static when idle)
-  const getStaticAvatar = () => {
-    return isSpeaking ? lisaGif : lisaPng;
-  };
-
-  // Calculate mouth opening based on audio level
-  const getMouthScale = () => {
-    if (!isSpeaking || audioLevel < 0.1) return 1;
-    return 1 + (audioLevel * 0.3);
-  };
-
   return (
-    <div className="relative flex flex-col items-center">
-      {/* Animated background glow */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {isSpeaking && (
-          <>
-            <div className="absolute w-full h-full rounded-full bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 animate-pulse blur-2xl" />
-            <div className="absolute w-[90%] h-[90%] rounded-full bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 animate-spin-slow blur-xl" />
-          </>
-        )}
-      </div>
-
-      {/* Main avatar container */}
-      <div className="relative z-10">
-        {/* Outer ring animations */}
-        {isSpeaking && (
-          <>
-            <div className="absolute inset-0 rounded-full border-4 border-primary/40 animate-pulse-ring scale-110" />
-            <div className="absolute inset-0 rounded-full border-4 border-secondary/40 animate-pulse-ring animation-delay-300 scale-110" />
-            <div className="absolute inset-0 rounded-full border-2 border-blue-500/30 animate-pulse-ring animation-delay-600 scale-110" />
-          </>
-        )}
-        
-        {/* Avatar frame */}
-        <div className={cn(
-          "relative rounded-full overflow-hidden transition-all duration-500 shadow-2xl",
-          sizeClasses[size],
-          isSpeaking 
-            ? "border-8 border-primary/60 shadow-primary/50 scale-105 ring-4 ring-primary/20" 
-            : "border-8 border-border/50 shadow-lg scale-100"
-        )}>
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900 dark:via-purple-900 dark:to-pink-900" />
-          
-          {/* Avatar content */}
-          <div className="relative w-full h-full flex items-center justify-center">
-            {/* D-ID Video (when ready) */}
-            {showVideo && videoUrl ? (
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                className={cn(
-                  "w-full h-full object-cover transition-opacity duration-500",
-                  showVideo ? "opacity-100" : "opacity-0"
-                )}
-                playsInline
-                onEnded={() => {
-                  setShowVideo(false);
-                  setVideoUrl(null);
-                }}
-              />
-            ) : (
-              /* Lisa Avatar */
-              <div className="relative w-full h-full">
-                <img 
-                  src={getStaticAvatar()}
-                  alt="Lisa AI Assistant" 
-                  className={cn(
-                    "w-full h-full object-cover transition-all duration-300",
-                    isSpeaking && "brightness-105"
-                  )}
-                />
-              </div>
-            )}
-            
-            {/* Animated subtle glow when speaking */}
-            {isSpeaking && (
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none" />
-            )}
-          </div>
-        </div>
-
-        {/* Volume indicator badge */}
-        <div className={cn(
-          "absolute -bottom-3 -right-3 p-3 rounded-full transition-all duration-300 shadow-lg",
-          isSpeaking 
-            ? "bg-primary text-primary-foreground scale-110 animate-pulse" 
-            : "bg-muted text-muted-foreground scale-90 opacity-70"
-        )}>
-          {isSpeaking ? (
-            <Volume2 className="w-5 h-5" />
-          ) : (
-            <VolumeX className="w-5 h-5" />
-          )}
-        </div>
-
-        {/* Emotion indicator badge */}
-        <div className="absolute -top-3 -right-3 px-3 py-1 rounded-full bg-background/90 backdrop-blur-sm border border-border shadow-lg">
-          <span className="text-xs font-medium text-foreground">
-            {currentEmotion === "asking" && "🤔"}
-            {currentEmotion === "listening" && "👂"}
-            {currentEmotion === "thinking" && "💭"}
-            {currentEmotion === "happy" && "😊"}
-            {currentEmotion === "encouraging" && "👍"}
-            {currentEmotion === "neutral" && "😌"}
-          </span>
-        </div>
-      </div>
-
-      {/* Audio wave visualization */}
-      {isSpeaking && (
-        <div className="mt-6 flex items-center gap-1 h-12">
-          {[...Array(20)].map((_, i) => {
-            const delay = i * 50;
-            const intensity = Math.abs(Math.sin((i / 20) * Math.PI)) * audioLevel;
-            return (
-              <div
-                key={i}
-                className="w-1 bg-gradient-to-t from-primary to-secondary rounded-full transition-all duration-100"
-                style={{
-                  height: `${20 + intensity * 80}%`,
-                  opacity: 0.3 + intensity * 0.7
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {/* Status text */}
-      <div className="mt-4 text-center">
-        <p className={cn(
-          "text-sm font-medium transition-all duration-300",
-          isSpeaking 
-            ? "text-primary animate-pulse" 
-            : "text-muted-foreground"
-        )}>
-          {isSpeaking && showVideo && "Speaking (HD)..."}
-          {isSpeaking && !showVideo && "Speaking..."}
-          {!isSpeaking && currentEmotion === "listening" && "Listening..."}
-          {!isSpeaking && currentEmotion === "thinking" && "Thinking..."}
-          {!isSpeaking && currentEmotion === "neutral" && "Ready"}
-        </p>
-      </div>
-    </div>
+    <LisaLipSyncAvatar
+      isSpeaking={isSpeaking}
+      audioElement={audioElement}
+      emotion={emotion}
+      size={size}
+      className={className}
+    />
   );
 }

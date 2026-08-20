@@ -325,6 +325,7 @@ const Index = () => {
                 questionText={currentQuestion?.question}
                 emotion={lisaEmotion}
                 size="xl"
+                audioElement={currentAudio}
               />
               
               {/* Lisa's name */}
