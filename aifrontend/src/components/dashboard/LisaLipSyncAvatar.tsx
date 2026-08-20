@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import lisaRealNeutral from "@/assets/lisa_real_neutral.jpg";
-import lisaRealSpeaking from "@/assets/lisa_real_speaking.jpg";
 
 interface LisaLipSyncAvatarProps {
   isSpeaking: boolean;
@@ -21,23 +20,34 @@ export function LisaLipSyncAvatar({
   size = "xl",
   className,
 }: LisaLipSyncAvatarProps) {
-  // Exact audio-synchronized states
-  const [mouthOpen, setMouthOpen] = useState(0); // 0 (closed) to 1 (full open)
-  const [audioLevel, setAudioLevel] = useState(0); // 0 to 1 for visualizer bars
-  const [isBlinking, setIsBlinking] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
 
-  // Audio PCM data references for sample-accurate lip sync
+  // Audio PCM and analysis references
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const smoothMouthRef = useRef(0);
   const smoothLevelRef = useRef(0);
 
-  // Blinking timer references
+  // Blinking reference
   const lastBlinkRef = useRef(Date.now());
   const nextBlinkIntervalRef = useRef(3500);
 
-  // Decode audio blob into raw PCM waveform when new audio arrives
+  // Load the base real-face photo once
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = lisaRealNeutral;
+    img.onload = () => {
+      imageRef.current = img;
+      setImageLoaded(true);
+    };
+  }, []);
+
+  // Decode audio blob into raw PCM waveform for millisecond-accurate audio sync
   useEffect(() => {
     let isCancelled = false;
 
@@ -74,27 +84,30 @@ export function LisaLipSyncAvatar({
     };
   }, [audioBlob]);
 
-  // Main 60 FPS audio sample & wording lip-sync loop
+  // Main 60 FPS Canvas Rendering & Real-Time Continuous Lip Morphing Loop
   useEffect(() => {
     let fallbackPhase = 0;
 
-    const syncLipMovement = () => {
+    const render = () => {
+      const canvas = canvasRef.current;
+      const img = imageRef.current;
+
       let targetMouth = 0;
       let targetLevel = 0;
 
+      // 1. Calculate continuous speech energy from PCM data
       if (isSpeaking) {
         const buffer = audioBufferRef.current;
         const audio = audioElement;
 
         if (buffer && audio && !audio.paused && !audio.ended) {
-          // Exact Sample-Accurate RMS Extraction based on audio.currentTime
           const sampleRate = buffer.sampleRate;
           const currentTime = audio.currentTime;
           const currentSample = Math.floor(currentTime * sampleRate);
           const channelData = buffer.getChannelData(0);
 
-          // 20ms analysis window centered on current playback time
-          const windowSize = Math.floor(sampleRate * 0.02);
+          // 15ms window around current playback timestamp
+          const windowSize = Math.floor(sampleRate * 0.015);
           const start = Math.max(0, currentSample - Math.floor(windowSize / 2));
           const end = Math.min(channelData.length, start + windowSize);
 
@@ -106,20 +119,19 @@ export function LisaLipSyncAvatar({
             }
             const rms = Math.sqrt(sumSq / (end - start));
 
-            // Map acoustic speech energy (RMS) directly to mouth aperture
-            // Typical voice RMS is between 0.015 (quiet/consonant) and 0.22 (loud vowel)
-            const rawNormalized = (rms - 0.012) / 0.16;
+            // Smooth continuous normalization
+            const rawNormalized = (rms - 0.014) / 0.15;
             targetMouth = Math.min(1, Math.max(0, rawNormalized));
-            targetLevel = Math.min(1, Math.max(0, (rms - 0.008) / 0.18));
+            targetLevel = Math.min(1, Math.max(0, (rms - 0.01) / 0.16));
           }
         } else {
-          // Fallback natural speech rhythm when buffer is decoding
-          fallbackPhase += 0.12;
-          const wave1 = Math.sin(fallbackPhase * 2.8);
-          const wave2 = Math.sin(fallbackPhase * 5.6);
-          const cadence = Math.max(0, Math.sin(fallbackPhase * 0.9));
-          const raw = Math.max(0, wave1 * 0.6 + wave2 * 0.4 + 0.1) * cadence;
-          targetMouth = Math.min(1, raw * 1.2);
+          // Fallback organic speech cadence while decoding
+          fallbackPhase += 0.1;
+          const wave1 = Math.sin(fallbackPhase * 3.2);
+          const wave2 = Math.sin(fallbackPhase * 6.4);
+          const cadence = Math.max(0, Math.sin(fallbackPhase * 1.1));
+          const raw = Math.max(0, wave1 * 0.6 + wave2 * 0.4 + 0.15) * cadence;
+          targetMouth = Math.min(1, raw * 1.1);
           targetLevel = targetMouth * 0.8;
         }
       } else {
@@ -127,37 +139,155 @@ export function LisaLipSyncAvatar({
         targetLevel = 0;
       }
 
-      // Fast-attack, smooth-decay filter for natural human lip articulation
-      const attackSpeed = targetMouth > smoothMouthRef.current ? 0.75 : 0.45;
-      smoothMouthRef.current += (targetMouth - smoothMouthRef.current) * attackSpeed;
-      smoothLevelRef.current += (targetLevel - smoothLevelRef.current) * 0.4;
+      // Smooth attack/release filtering for organic, fluid lip movement (no photo swapping)
+      const attackCoeff = targetMouth > smoothMouthRef.current ? 0.7 : 0.35;
+      smoothMouthRef.current += (targetMouth - smoothMouthRef.current) * attackCoeff;
+      smoothLevelRef.current += (targetLevel - smoothLevelRef.current) * 0.35;
 
-      setMouthOpen(smoothMouthRef.current);
+      const mouthOpenAmount = smoothMouthRef.current;
       setAudioLevel(smoothLevelRef.current);
 
-      // Natural eye blinking (subtle, non-distracting)
-      const now = Date.now();
-      if (now - lastBlinkRef.current > nextBlinkIntervalRef.current) {
-        if (now - lastBlinkRef.current > nextBlinkIntervalRef.current + 160) {
-          lastBlinkRef.current = now;
-          nextBlinkIntervalRef.current = 2800 + Math.random() * 3200;
-          setIsBlinking(false);
-        } else {
-          setIsBlinking(true);
+      // 2. Draw real-time morphed face on canvas
+      if (canvas && img) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const w = canvas.width;
+          const h = canvas.height;
+
+          // Clear and draw the base high-definition photo
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Natural Blinking Logic (every 3-5 seconds, takes ~140ms)
+          const now = Date.now();
+          let blinkProgress = 0;
+          if (now - lastBlinkRef.current > nextBlinkIntervalRef.current) {
+            const elapsed = now - lastBlinkRef.current - nextBlinkIntervalRef.current;
+            if (elapsed > 140) {
+              lastBlinkRef.current = now;
+              nextBlinkIntervalRef.current = 2800 + Math.random() * 3200;
+            } else {
+              blinkProgress = Math.sin((elapsed / 140) * Math.PI);
+            }
+          }
+
+          // Render soft natural eyelid blinking over the real eye coordinates
+          if (blinkProgress > 0.05) {
+            ctx.save();
+            ctx.fillStyle = `rgba(215, 180, 168, ${blinkProgress * 0.95})`;
+            
+            // Left Eye Eyelid
+            ctx.beginPath();
+            ctx.ellipse(w * 0.424, h * 0.322, w * 0.038, h * 0.016 * blinkProgress, -0.05, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Right Eye Eyelid
+            ctx.beginPath();
+            ctx.ellipse(w * 0.578, h * 0.322, w * 0.038, h * 0.016 * blinkProgress, 0.05, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+          }
+
+          // 3. CONTINUOUS FLUID LIP-SYNC MORPHING (Rendered seamlessly over mouth coordinates)
+          if (mouthOpenAmount > 0.01) {
+            const centerX = w * 0.502;
+            const centerY = h * 0.478;
+            const mouthWidth = w * 0.075 + (mouthOpenAmount * w * 0.008);
+            const openHeight = mouthOpenAmount * (h * 0.034);
+
+            const leftX = centerX - mouthWidth;
+            const rightX = centerX + mouthWidth;
+            const upperY = centerY - 1;
+            const lowerY = centerY + openHeight;
+
+            ctx.save();
+
+            // Oral Cavity Interior (Deep gradient depth)
+            ctx.beginPath();
+            ctx.moveTo(leftX, upperY);
+            ctx.quadraticCurveTo(centerX, upperY - (openHeight * 0.15), rightX, upperY);
+            ctx.quadraticCurveTo(centerX, lowerY + 2, leftX, upperY);
+            ctx.closePath();
+
+            const cavityGrad = ctx.createRadialGradient(centerX, centerY, 2, centerX, centerY, openHeight + 10);
+            cavityGrad.addColorStop(0, "#2a0408");
+            cavityGrad.addColorStop(0.7, "#42080f");
+            cavityGrad.addColorStop(1, "#5c0e18");
+            ctx.fillStyle = cavityGrad;
+            ctx.fill();
+
+            // Upper Teeth Row (Revealed smoothly)
+            ctx.beginPath();
+            ctx.moveTo(leftX + 4, upperY);
+            ctx.quadraticCurveTo(centerX, upperY, rightX - 4, upperY);
+            ctx.quadraticCurveTo(centerX, upperY + Math.min(openHeight * 0.45, 6), leftX + 4, upperY);
+            ctx.closePath();
+            ctx.fillStyle = "rgba(248, 250, 252, 0.95)";
+            ctx.fill();
+
+            // Soft Tongue (Visible on larger vowel openings)
+            if (mouthOpenAmount > 0.3) {
+              ctx.beginPath();
+              ctx.ellipse(
+                centerX,
+                lowerY - (openHeight * 0.25),
+                mouthWidth * 0.45,
+                openHeight * 0.35,
+                0,
+                0,
+                Math.PI
+              );
+              ctx.fillStyle = "rgba(225, 29, 72, 0.85)";
+              ctx.fill();
+            }
+
+            // Lower Lip Contour (Smoothly warped down with speech)
+            ctx.beginPath();
+            ctx.moveTo(leftX, upperY);
+            ctx.quadraticCurveTo(centerX, lowerY + (mouthOpenAmount * 5) + 3, rightX, upperY);
+            ctx.quadraticCurveTo(centerX, lowerY, leftX, upperY);
+            ctx.closePath();
+
+            const lipGrad = ctx.createLinearGradient(centerX, lowerY, centerX, lowerY + 8);
+            lipGrad.addColorStop(0, "rgba(190, 18, 60, 0.95)");
+            lipGrad.addColorStop(1, "rgba(225, 29, 72, 0.85)");
+            ctx.fillStyle = lipGrad;
+            ctx.fill();
+
+            // Upper Lip Contour (Natural cupid's bow)
+            ctx.beginPath();
+            ctx.moveTo(leftX, upperY);
+            ctx.bezierCurveTo(centerX - 10, upperY - 2.5, centerX - 3, upperY + 0.5, centerX, upperY - 0.5);
+            ctx.bezierCurveTo(centerX + 3, upperY + 0.5, centerX + 10, upperY - 2.5, rightX, upperY);
+            ctx.quadraticCurveTo(centerX, upperY + 1.5, leftX, upperY);
+            ctx.closePath();
+            ctx.fillStyle = "rgba(190, 18, 60, 0.9)";
+            ctx.fill();
+
+            // Soft feathering blur along mouth corners for seamless integration
+            ctx.beginPath();
+            ctx.arc(leftX, upperY, 3, 0, Math.PI * 2);
+            ctx.arc(rightX, upperY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(159, 18, 57, 0.4)";
+            ctx.fill();
+
+            ctx.restore();
+          }
         }
       }
 
-      animationFrameRef.current = requestAnimationFrame(syncLipMovement);
+      animationFrameRef.current = requestAnimationFrame(render);
     };
 
-    animationFrameRef.current = requestAnimationFrame(syncLipMovement);
+    animationFrameRef.current = requestAnimationFrame(render);
 
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isSpeaking, audioElement]);
+  }, [isSpeaking, audioElement, imageLoaded]);
 
   // Size mapping
   const sizeMap = {
@@ -169,7 +299,7 @@ export function LisaLipSyncAvatar({
 
   return (
     <div className={cn("relative flex flex-col items-center select-none", className)}>
-      {/* Surrounding speech glow aura */}
+      {/* Speech glow aura */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         {isSpeaking && (
           <>
@@ -193,9 +323,9 @@ export function LisaLipSyncAvatar({
         )}
       </div>
 
-      {/* Main Avatar Container (100% Rock-Solid & Stable - NO ZIGZAG / NO TILT) */}
+      {/* Main Avatar Container (Completely Rock-Solid & Stable Anchor) */}
       <div className="relative z-10">
-        {/* Subtle Outer Concentric Ring when speaking */}
+        {/* Outer Ring when speaking */}
         {isSpeaking && (
           <div
             className="absolute inset-0 rounded-full border-2 border-primary/40 animate-pulse-ring"
@@ -203,57 +333,25 @@ export function LisaLipSyncAvatar({
           />
         )}
 
-        {/* Rock-solid, stable circular frame */}
+        {/* Circular Face Canvas Container */}
         <div
           className={cn(
-            "relative rounded-full overflow-hidden transition-colors duration-300 shadow-2xl bg-slate-950",
+            "relative rounded-full overflow-hidden shadow-2xl bg-slate-950",
             sizeMap[size],
             isSpeaking
               ? "border-4 border-primary shadow-primary/40 ring-4 ring-primary/20"
               : "border-4 border-border/70 shadow-xl"
           )}
         >
-          {/* Base Layer: Neutral Photorealistic Face (Completely Stable Anchor) */}
-          <img
-            src={lisaRealNeutral}
-            alt="Lisa AI Avatar"
+          {/* Real-time Smooth Lip-Sync Canvas */}
+          <canvas
+            ref={canvasRef}
+            width={600}
+            height={600}
             className="w-full h-full object-cover object-center"
-            draggable={false}
           />
 
-          {/* Real-time Wording-Accurate Lip Layer (Morphed smoothly over the mouth region only) */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              opacity: Math.min(1, mouthOpen * 1.4),
-              transition: "opacity 40ms ease-out",
-            }}
-          >
-            <img
-              src={lisaRealSpeaking}
-              alt="Lisa Speaking Mouth"
-              className="w-full h-full object-cover object-center"
-              style={{
-                clipPath: "ellipse(17% 11% at 50% 50.2%)",
-                filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.12))",
-              }}
-              draggable={false}
-            />
-          </div>
-
-          {/* Natural Eye Blinking Overlay (Soft and realistic) */}
-          {isBlinking && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                clipPath: "polygon(34% 31%, 66% 31%, 66% 39%, 34% 39%)",
-              }}
-            >
-              <div className="w-full h-full bg-[#dcb8aa]/90 backdrop-blur-[1px]" />
-            </div>
-          )}
-
-          {/* Subtle Ambient Speech Glow */}
+          {/* Ambient Speech Lighting */}
           {isSpeaking && (
             <div
               className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none"
@@ -287,7 +385,7 @@ export function LisaLipSyncAvatar({
         </div>
       </div>
 
-      {/* Live Voice Audio Waveform Bars (synchronized with live speech volume) */}
+      {/* Synchronized Voice Audio Waveform Bars */}
       {isSpeaking && (
         <div className="mt-6 flex items-center justify-center gap-1.5 h-10 w-full max-w-[260px]">
           {[...Array(16)].map((_, i) => {
