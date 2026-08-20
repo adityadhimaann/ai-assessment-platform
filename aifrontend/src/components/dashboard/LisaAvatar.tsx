@@ -1,5 +1,5 @@
 import React from "react";
-import { ElevenLabsAvatar } from "./ElevenLabsAvatar";
+import { ElevenLabsPersonAvatar } from "./ElevenLabsPersonAvatar";
 
 interface LisaAvatarProps {
   isSpeaking: boolean;
@@ -7,6 +7,7 @@ interface LisaAvatarProps {
   size?: "sm" | "md" | "lg" | "xl";
   audioElement?: HTMLAudioElement | null;
   audioBlob?: Blob | null;
+  alignment?: any;
   emotion?: "neutral" | "asking" | "listening" | "thinking" | "happy" | "encouraging";
   className?: string;
 }
@@ -16,14 +17,16 @@ export function LisaAvatar({
   size = "lg",
   audioElement,
   audioBlob,
+  alignment,
   emotion = "neutral",
   className,
 }: LisaAvatarProps) {
   return (
-    <ElevenLabsAvatar
+    <ElevenLabsPersonAvatar
       isSpeaking={isSpeaking}
       audioElement={audioElement}
       audioBlob={audioBlob}
+      alignment={alignment}
       emotion={emotion}
       size={size}
       className={className}

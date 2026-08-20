@@ -1,5 +1,5 @@
 import React from "react";
-import { ElevenLabsAvatar } from "./ElevenLabsAvatar";
+import { ElevenLabsPersonAvatar } from "./ElevenLabsPersonAvatar";
 
 interface HybridLisaAvatarProps {
   isSpeaking: boolean;
@@ -19,13 +19,15 @@ export function HybridLisaAvatar({
   size = "xl",
   audioElement,
   audioBlob,
+  alignment,
   className
 }: HybridLisaAvatarProps) {
   return (
-    <ElevenLabsAvatar
+    <ElevenLabsPersonAvatar
       isSpeaking={isSpeaking}
       audioElement={audioElement}
       audioBlob={audioBlob}
+      alignment={alignment}
       emotion={emotion}
       size={size}
       className={className}
