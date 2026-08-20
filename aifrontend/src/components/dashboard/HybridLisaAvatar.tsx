@@ -7,6 +7,7 @@ interface HybridLisaAvatarProps {
   emotion?: "neutral" | "asking" | "listening" | "thinking" | "happy" | "encouraging";
   size?: "sm" | "md" | "lg" | "xl";
   audioElement?: HTMLAudioElement | null;
+  audioBlob?: Blob | null;
   onAudioReady?: (audioUrl: string) => void;
   className?: string;
 }
@@ -16,12 +17,14 @@ export function HybridLisaAvatar({
   emotion = "neutral",
   size = "xl",
   audioElement,
+  audioBlob,
   className
 }: HybridLisaAvatarProps) {
   return (
     <LisaLipSyncAvatar
       isSpeaking={isSpeaking}
       audioElement={audioElement}
+      audioBlob={audioBlob}
       emotion={emotion}
       size={size}
       className={className}

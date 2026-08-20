@@ -22,6 +22,7 @@ const Index = () => {
   const [showResults, setShowResults] = useState(false);
   const [isLisaSpeaking, setIsLisaSpeaking] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [currentAudioBlob, setCurrentAudioBlob] = useState<Blob | null>(null);
   const [lisaEmotion, setLisaEmotion] = useState<"neutral" | "asking" | "listening" | "thinking" | "happy" | "encouraging">("neutral");
 
   const {
@@ -79,11 +80,11 @@ const Index = () => {
           }
           
           // Get audio from ElevenLabs (fast - 2-3s)
-          // D-ID video generation happens in parallel in HybridLisaAvatar
           const audioBlob = await apiClient.readQuestion(currentQuestion.question);
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);
           
+          setCurrentAudioBlob(audioBlob);
           setCurrentAudio(audio);
           
           audio.onended = () => {
@@ -91,6 +92,7 @@ const Index = () => {
             setLisaEmotion("listening");
             URL.revokeObjectURL(audioUrl);
             setCurrentAudio(null);
+            setCurrentAudioBlob(null);
             
             // Auto-start recording after Lisa finishes speaking
             setTimeout(() => {
@@ -110,6 +112,7 @@ const Index = () => {
             setLisaEmotion("neutral");
             URL.revokeObjectURL(audioUrl);
             setCurrentAudio(null);
+            setCurrentAudioBlob(null);
             console.error("Error playing question audio");
           };
           
@@ -326,6 +329,7 @@ const Index = () => {
                 emotion={lisaEmotion}
                 size="xl"
                 audioElement={currentAudio}
+                audioBlob={currentAudioBlob}
               />
               
               {/* Lisa's name */}
